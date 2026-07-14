@@ -1,0 +1,19 @@
+# dependencies
+node_modules/
+
+# env
+.env
+.env.local
+
+# builds
+dist/
+build/
+.expo/
+web-build/
+
+# uploads (tournament rules PDFs live outside git)
+uploads/
+
+# OS
+.DS_Store
+

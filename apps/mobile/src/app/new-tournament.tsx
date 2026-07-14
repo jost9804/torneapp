@@ -48,7 +48,7 @@ export default function NewTournamentScreen() {
         }
         await api.tournaments.uploadRules(tournament.id, form);
       }
-      router.dismiss();
+      if (router.canDismiss()) router.dismiss();
       router.push({ pathname: '/tournaments/[id]', params: { id: tournament.id } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create the tournament');

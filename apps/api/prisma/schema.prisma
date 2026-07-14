@@ -1,13 +1,92 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Sport {
+  FOOTBALL_11
+}
+
+enum TournamentFormat {
+  ROUND_ROBIN
+  ROUND_ROBIN_HOME_AWAY
+}
+
+enum TournamentStatus {
+  DRAFT
+  ACTIVE
+  FINISHED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  PLAYED
+}
+
+model Tournament {
+  id           String           @id @default(uuid())
+  name         String
+  sport        Sport            @default(FOOTBALL_11)
+  format       TournamentFormat @default(ROUND_ROBIN)
+  status       TournamentStatus @default(DRAFT)
+  rulesPdfPath String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  teams        Team[]
+  matches      Match[]
+}
+
+model Team {
+  id           String     @id @default(uuid())
+  name         String
+  crestUrl     String?
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  players      Player[]
+  homeMatches  Match[]    @relation("HomeTeam")
+  awayMatches  Match[]    @relation("AwayTeam")
+
+  @@unique([tournamentId, name])
+}
+
+model Player {
+  id       String  @id @default(uuid())
+  name     String
+  number   Int?
+  position String?
+  teamId   String
+  team     Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  goals    Goal[]
+}
+
+model Match {
+  id           String      @id @default(uuid())
+  tournamentId String
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  round        Int
+  scheduledAt  DateTime?
+  homeTeamId   String
+  homeTeam     Team        @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeamId   String
+  awayTeam     Team        @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  homeScore    Int?
+  awayScore    Int?
+  status       MatchStatus @default(SCHEDULED)
+  goals        Goal[]
+
+  @@index([tournamentId, round])
+}
+
+model Goal {
+  id       String  @id @default(uuid())
+  matchId  String
+  match    Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId String
+  player   Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  minute   Int?
 }

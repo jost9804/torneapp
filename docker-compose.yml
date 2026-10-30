@@ -6,8 +6,9 @@ services:
       POSTGRES_USER: torneapp
       POSTGRES_PASSWORD: ${DB_PASSWORD:-torneapp_dev}
       POSTGRES_DB: torneapp
+    # Bound to localhost: Docker-published ports bypass host firewalls like ufw.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

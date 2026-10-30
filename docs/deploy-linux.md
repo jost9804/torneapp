@@ -20,8 +20,12 @@ sudo usermod -aG docker $USER   # log out and back in afterwards
 ```bash
 git clone https://github.com/jost9804/torneapp.git
 cd torneapp
-DB_PASSWORD=<pick-a-password> docker compose up -d --build
+echo "DB_PASSWORD=$(openssl rand -hex 24)" > .env   # Compose reads .env automatically
+chmod 600 .env
+docker compose up -d --build
 ```
+
+Keep the `.env` file: Postgres stores the password on first start, so every later `docker compose up` must use the same value.
 
 The API container runs `prisma migrate deploy` on start, so the schema is applied automatically.
 
@@ -37,7 +41,13 @@ curl http://localhost:3000/health
 docker compose exec api sh -c "npx tsx prisma/seed.ts"
 ```
 
-Note: seeding requires dev dependencies; if the production image lacks them, run the seed from a dev machine pointing `DATABASE_URL` at the Linux box instead.
+Note: seeding requires dev dependencies; if the production image lacks them, run the seed from a dev machine instead. Postgres only listens on the server's localhost, so open an SSH tunnel first:
+
+```bash
+ssh -N -L 5433:localhost:5432 <user>@<server-ip>   # keep running in another terminal
+cd apps/api
+DATABASE_URL="postgresql://torneapp:<DB_PASSWORD>@localhost:5433/torneapp" npx tsx prisma/seed.ts
+```
 
 ## 4. Connect the app
 

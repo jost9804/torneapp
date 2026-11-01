@@ -1,0 +1,33 @@
+{
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	# The API has no accounts yet, so the whole site sits behind one shared login.
+	basic_auth {
+		{$WEB_AUTH_USER} {$WEB_AUTH_HASH}
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		root * /srv
+		# Static export emits one HTML file per dynamic route.
+		@tournament path_regexp ^/tournaments/[^/]+/?$
+		rewrite @tournament /tournaments/[id].html
+		@match path_regexp ^/matches/[^/]+/?$
+		rewrite @match /matches/[id].html
+		try_files {path} {path}.html
+		file_server
+	}
+
+	handle_errors 404 {
+		root * /srv
+		rewrite * /+not-found.html
+		file_server
+	}
+}

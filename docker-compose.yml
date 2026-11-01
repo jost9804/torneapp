@@ -31,6 +31,20 @@ services:
     volumes:
       - uploads:/app/uploads
 
+  # Web build + reverse proxy for the public demo. Enable with COMPOSE_PROFILES=web.
+  web:
+    build: ./apps/mobile
+    restart: unless-stopped
+    profiles: ["web"]
+    depends_on:
+      - api
+    environment:
+      WEB_AUTH_USER: ${WEB_AUTH_USER}
+      WEB_AUTH_HASH: ${WEB_AUTH_HASH}
+    # Localhost only: Tailscale Funnel publishes it over HTTPS.
+    ports:
+      - "127.0.0.1:8080:80"
+
 volumes:
   pgdata:
   uploads:

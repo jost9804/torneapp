@@ -65,10 +65,40 @@ Phone and Linux box must be on the same network. Open port 3000 if a firewall is
 sudo ufw allow 3000/tcp
 ```
 
-## 5. Useful commands
+## 5. Public web demo (Tailscale Funnel)
+
+The `web` service builds the web app and serves it with Caddy on `127.0.0.1:8080`, proxying `/api` to the API. The API has no accounts yet, so Caddy puts the whole site behind one shared login. Tailscale Funnel publishes it over HTTPS at a fixed `https://<machine>.<tailnet>.ts.net` URL, without a domain or router changes.
+
+Create the login and enable the profile (single quotes keep the `$` in the hash literal):
+
+```bash
+cd ~/torneapp
+HASH=$(docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>')
+cat >> .env <<EOF
+COMPOSE_PROFILES=web
+WEB_AUTH_USER=<user>
+WEB_AUTH_HASH='$HASH'
+EOF
+docker compose up -d --build
+curl -u <user>:<password> -o /dev/null -w "%{http_code}\n" localhost:8080/   # 200
+```
+
+Install Tailscale and publish port 8080 (the first `funnel` run prints a link to enable Funnel for the tailnet):
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+sudo tailscale funnel --bg 8080
+tailscale funnel status   # shows the public URL
+```
+
+Funnel keeps running across reboots. Stop it with `sudo tailscale funnel --https=443 off`.
+
+## 6. Useful commands
 
 ```bash
 docker compose logs -f api      # API logs
+docker compose logs -f web      # web proxy logs
 docker compose down             # stop (data persists in volumes)
 docker compose down -v          # stop and DELETE data
 git pull && docker compose up -d --build   # deploy an update

@@ -39,7 +39,7 @@ export default function TournamentDetailScreen() {
             {data.rulesPdfPath ? (
               <ThemedText
                 type="smallBold"
-                themeColor="accent"
+                themeColor="accentText"
                 onPress={() => WebBrowser.openBrowserAsync(api.tournaments.rulesUrl(id))}
               >
                 View rules (PDF)

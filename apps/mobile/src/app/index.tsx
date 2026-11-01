@@ -28,7 +28,7 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
       >
         <View style={styles.cardHeader}>
           <ThemedText type="smallBold">{tournament.name}</ThemedText>
-          <ThemedText type="small" themeColor="accent">
+          <ThemedText type="small" themeColor="accentText">
             {STATUS_LABEL[tournament.status]}
           </ThemedText>
         </View>

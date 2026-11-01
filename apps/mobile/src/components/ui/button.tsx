@@ -1,7 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type ButtonProps = Omit<PressableProps, 'children'> & {
@@ -25,7 +25,8 @@ export function Button({
       : variant === 'danger'
         ? theme.danger
         : theme.backgroundElement;
-  const color = variant === 'secondary' ? theme.text : theme.onAccent;
+  const color =
+    variant === 'secondary' ? theme.text : variant === 'danger' ? theme.onDanger : theme.onAccent;
 
   return (
     <Pressable
@@ -55,7 +56,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.two + 4,
     paddingHorizontal: Spacing.three,
-    borderRadius: 10,
+    borderRadius: Radius.md,
+    borderCurve: 'continuous',
     minHeight: 44,
   },
 });

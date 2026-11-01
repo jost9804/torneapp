@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type SegmentedProps<T extends string> = {
@@ -51,13 +51,15 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    borderRadius: 10,
+    borderRadius: Radius.md,
+    borderCurve: 'continuous',
     padding: Spacing.half,
     gap: Spacing.half,
   },
   segment: {
     paddingVertical: Spacing.two,
     paddingHorizontal: Spacing.three,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
+    borderCurve: 'continuous',
   },
 });

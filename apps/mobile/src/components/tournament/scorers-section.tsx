@@ -34,7 +34,7 @@ export function ScorersSection({ tournamentId }: { tournamentId: string }) {
               {scorer.teamName}
             </ThemedText>
           </View>
-          <ThemedText type="subtitle" themeColor="accent" style={styles.goals}>
+          <ThemedText type="subtitle" themeColor="accentText" style={styles.goals}>
             {scorer.goals}
           </ThemedText>
         </View>

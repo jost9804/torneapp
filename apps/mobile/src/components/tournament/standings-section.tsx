@@ -59,7 +59,7 @@ export function StandingsSection({ tournamentId }: { tournamentId: string }) {
             <ThemedText type="small" style={styles.stat}>
               {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
             </ThemedText>
-            <ThemedText type="smallBold" themeColor="accent" style={styles.stat}>
+            <ThemedText type="smallBold" themeColor="accentText" style={styles.stat}>
               {row.points}
             </ThemedText>
           </View>

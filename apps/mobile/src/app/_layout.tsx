@@ -64,6 +64,9 @@ export default function RootLayout() {
       <ThemeProvider value={navigationTheme(colorScheme)}>
         <Stack
           screenOptions={{
+            // iOS 26 defaults to a see-through Liquid Glass bar that content scrolls under;
+            // keep the solid matchday header so nothing hides behind the title.
+            headerTransparent: false,
             headerShadowVisible: false,
             headerTitleStyle: { fontFamily: FontFamily.displayBold, fontSize: 22 },
           }}

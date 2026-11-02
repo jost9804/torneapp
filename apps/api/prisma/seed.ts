@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { hashPassword } from '../src/auth/password';
 import { generateRoundRobin } from '../src/fixtures/round-robin';
 
 const prisma = new PrismaClient({
@@ -44,6 +45,27 @@ async function main() {
   const tournament = await prisma.tournament.create({
     data: { name: 'Torneo Demo Fútbol 11', format: 'ROUND_ROBIN', status: 'ACTIVE' },
   });
+
+  // Someone has to be able to edit the demo; credentials come from the environment
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const admin = await prisma.user.upsert({
+      where: { email: adminEmail },
+      create: {
+        email: adminEmail,
+        name: 'Administrador demo',
+        passwordHash: await hashPassword(adminPassword),
+      },
+      update: {},
+    });
+    await prisma.membership.create({
+      data: { userId: admin.id, tournamentId: tournament.id, role: 'ADMIN', status: 'ACTIVE' },
+    });
+    console.log(`Demo admin: ${adminEmail}`);
+  } else {
+    console.log('SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD not set: the demo has no admin.');
+  }
 
   const teams: Awaited<ReturnType<typeof createTeam>>[] = [];
   const createTeam = (name: string) =>

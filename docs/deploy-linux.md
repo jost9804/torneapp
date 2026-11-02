@@ -21,11 +21,14 @@ sudo usermod -aG docker $USER   # log out and back in afterwards
 git clone https://github.com/jost9804/torneapp.git
 cd torneapp
 echo "DB_PASSWORD=$(openssl rand -hex 24)" > .env   # Compose reads .env automatically
+echo "JWT_SECRET=$(openssl rand -hex 32)" >> .env    # Signs login sessions
 chmod 600 .env
 docker compose up -d --build
 ```
 
-Keep the `.env` file: Postgres stores the password on first start, so every later `docker compose up` must use the same value.
+Keep the `.env` file: Postgres stores the password on first start, so every later `docker compose up` must use the same value. Changing `JWT_SECRET` signs everyone out.
+
+Google and Facebook sign-in stay off until `GOOGLE_CLIENT_IDS`, `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` are added to `.env` (see `apps/api/.env.example`).
 
 The API container runs `prisma migrate deploy` on start, so the schema is applied automatically.
 

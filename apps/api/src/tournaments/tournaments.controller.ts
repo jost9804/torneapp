@@ -9,15 +9,19 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Body, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { existsSync, mkdirSync } from 'fs';
-import { extname, join } from 'path';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
+import { AccessService } from '../access/access.service';
+import { Authenticated, CurrentUser, type AuthUser } from '../auth/auth.guard';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentsService } from './tournaments.service';
@@ -29,48 +33,80 @@ const MAX_RULES_PDF_BYTES = 10 * 1024 * 1024;
 
 @Controller('tournaments')
 export class TournamentsController {
-  constructor(private readonly tournaments: TournamentsService) {}
+  constructor(
+    private readonly tournaments: TournamentsService,
+    private readonly access: AccessService,
+  ) {}
 
   @Post()
-  create(@Body() dto: CreateTournamentDto) {
-    return this.tournaments.create(dto);
+  @Authenticated()
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateTournamentDto) {
+    return this.tournaments.create(user, dto);
   }
 
   @Get()
-  findAll() {
-    return this.tournaments.findAll();
+  findAll(@CurrentUser() user: AuthUser | undefined) {
+    return this.tournaments.findAll(user);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tournaments.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser | undefined,
+  ) {
+    return this.tournaments.findOne(id, user);
   }
 
   @Patch(':id')
+  @Authenticated()
   update(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTournamentDto,
   ) {
-    return this.tournaments.update(id, dto);
+    return this.tournaments.update(user, id, dto);
   }
 
   @Delete(':id')
+  @Authenticated()
   @HttpCode(204)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tournaments.remove(id);
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tournaments.remove(user, id);
   }
 
+  @Put(':id/like')
+  @Authenticated()
+  like(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tournaments.setLike(user, id, true);
+  }
+
+  @Delete(':id/like')
+  @Authenticated()
+  unlike(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tournaments.setLike(user, id, false);
+  }
+
+  @Put(':id/follow')
+  @Authenticated()
+  follow(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tournaments.setFollow(user, id, true);
+  }
+
+  @Delete(':id/follow')
+  @Authenticated()
+  unfollow(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.tournaments.setFollow(user, id, false);
+  }
+
+  // Kept in memory until the admin check passes, so nobody else can overwrite the PDF
   @Post(':id/rules')
+  @Authenticated()
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
-          cb(null, UPLOADS_DIR);
-        },
-        filename: (req, file, cb) =>
-          cb(null, `${req.params.id}-rules${extname(file.originalname) || '.pdf'}`),
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: MAX_RULES_PDF_BYTES },
       fileFilter: (_req, file, cb) => {
         if (file.mimetype !== 'application/pdf') {
@@ -81,11 +117,17 @@ export class TournamentsController {
     }),
   )
   async uploadRules(
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    await this.tournaments.findOne(id);
+    await this.access.requireAdmin(user, id);
     if (!file) throw new BadRequestException('Missing "file" field with a PDF');
-    return this.tournaments.setRulesPdf(id, file.filename);
+    if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
+    const filename = `${id}-rules.pdf`;
+    await writeFile(join(UPLOADS_DIR, filename), file.buffer);
+    return this.tournaments.setRulesPdf(id, filename);
   }
 
   @Get(':id/rules')

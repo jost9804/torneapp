@@ -3,19 +3,25 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AccessService } from '../access/access.service';
+import type { AuthUser } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
-  async create(tournamentId: string, dto: CreateTeamDto) {
+  async create(user: AuthUser | undefined, tournamentId: string, dto: CreateTeamDto) {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
       include: { _count: { select: { matches: true } } },
     });
     if (!tournament) throw new NotFoundException('Tournament not found');
+    await this.access.requireAdmin(user, tournamentId);
     if (tournament._count.matches > 0) {
       throw new ConflictException(
         'Cannot add teams after the fixture has been generated',
@@ -38,12 +44,13 @@ export class TeamsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(user: AuthUser | undefined, id: string) {
     const team = await this.prisma.team.findUnique({
       where: { id },
       include: { tournament: { include: { _count: { select: { matches: true } } } } },
     });
     if (!team) throw new NotFoundException('Team not found');
+    await this.access.requireAdmin(user, team.tournamentId);
     if (team.tournament._count.matches > 0) {
       throw new ConflictException(
         'Cannot remove teams after the fixture has been generated',

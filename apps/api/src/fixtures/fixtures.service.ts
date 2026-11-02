@@ -4,19 +4,25 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { AccessService } from '../access/access.service';
+import type { AuthUser } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { generateRoundRobin } from './round-robin';
 
 @Injectable()
 export class FixturesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
-  async generate(tournamentId: string) {
+  async generate(user: AuthUser | undefined, tournamentId: string) {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
       include: { teams: true, _count: { select: { matches: true } } },
     });
     if (!tournament) throw new NotFoundException('Tournament not found');
+    await this.access.requireAdmin(user, tournamentId);
     if (tournament._count.matches > 0) {
       throw new ConflictException('Fixture already generated');
     }
@@ -55,6 +61,11 @@ export class FixturesService {
           include: { player: { select: { id: true, name: true, teamId: true } } },
           orderBy: { minute: 'asc' },
         },
+        cards: {
+          include: { player: { select: { id: true, name: true, teamId: true } } },
+          orderBy: { minute: 'asc' },
+        },
+        referee: { select: { id: true, name: true } },
       },
     });
   }

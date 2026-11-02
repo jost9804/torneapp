@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
+import { Authenticated, CurrentUser, type AuthUser } from '../auth/auth.guard';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { TeamsService } from './teams.service';
 
@@ -16,11 +17,13 @@ export class TeamsController {
   constructor(private readonly teams: TeamsService) {}
 
   @Post('tournaments/:tournamentId/teams')
+  @Authenticated()
   create(
+    @CurrentUser() user: AuthUser,
     @Param('tournamentId', ParseUUIDPipe) tournamentId: string,
     @Body() dto: CreateTeamDto,
   ) {
-    return this.teams.create(tournamentId, dto);
+    return this.teams.create(user, tournamentId, dto);
   }
 
   @Get('tournaments/:tournamentId/teams')
@@ -31,8 +34,12 @@ export class TeamsController {
   }
 
   @Delete('teams/:id')
+  @Authenticated()
   @HttpCode(204)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.teams.remove(id);
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.teams.remove(user, id);
   }
 }

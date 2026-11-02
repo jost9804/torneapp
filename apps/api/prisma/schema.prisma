@@ -1,7 +1,7 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
   importFileExtension = "js"
 }
 
@@ -29,40 +29,155 @@ enum MatchStatus {
   PLAYED
 }
 
-model Tournament {
+/// What a user can do inside one tournament
+enum Role {
+  ADMIN
+  REFEREE
+  COACH
+  PLAYER
+}
+
+/// PENDING: the user asked to join and waits for an admin
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CardType {
+  YELLOW
+  RED
+}
+
+model User {
+  id             String             @id @default(uuid())
+  email          String             @unique
+  name           String
+  /// scrypt hash; null for accounts created only through Google or Facebook
+  passwordHash   String?
+  googleId       String?            @unique
+  facebookId     String?            @unique
+  avatarUrl      String?
+  createdAt      DateTime           @default(now())
+  memberships    Membership[]
+  refereeing     Match[]            @relation("MatchReferee")
+  playerRequests PlayerRequest[]
+  likes          TournamentLike[]
+  follows        TournamentFollow[]
+}
+
+model Membership {
   id           String           @id @default(uuid())
-  name         String
-  sport        Sport            @default(FOOTBALL_11)
-  format       TournamentFormat @default(ROUND_ROBIN)
-  status       TournamentStatus @default(DRAFT)
-  rulesPdfPath String?
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournamentId String
+  tournament   Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  role         Role
+  status       MembershipStatus @default(PENDING)
+  /// Team a coach manages or a player belongs to
+  teamId       String?
+  team         Team?            @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  /// Roster entry a PLAYER membership is linked to, so the player can edit it
+  playerId     String?          @unique
+  player       Player?          @relation(fields: [playerId], references: [id], onDelete: SetNull)
   createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+
+  @@unique([userId, tournamentId, role])
+  @@index([tournamentId, status])
+}
+
+/// A coach's request to add a player; an admin approves it into the roster
+model PlayerRequest {
+  id            String        @id @default(uuid())
+  teamId        String
+  team          Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User          @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  name          String
+  number        Int?
+  position      String?
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+
+  @@index([teamId, status])
+}
+
+model Card {
+  id       String   @id @default(uuid())
+  matchId  String
+  match    Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId String
+  player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  type     CardType
+  minute   Int?
+}
+
+model TournamentLike {
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([userId, tournamentId])
+}
+
+model TournamentFollow {
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([userId, tournamentId])
+}
+
+model Tournament {
+  id           String             @id @default(uuid())
+  name         String
+  sport        Sport              @default(FOOTBALL_11)
+  format       TournamentFormat   @default(ROUND_ROBIN)
+  status       TournamentStatus   @default(DRAFT)
+  rulesPdfPath String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   teams        Team[]
   matches      Match[]
+  memberships  Membership[]
+  likes        TournamentLike[]
+  follows      TournamentFollow[]
 }
 
 model Team {
-  id           String     @id @default(uuid())
-  name         String
-  crestUrl     String?
-  tournamentId String
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  players      Player[]
-  homeMatches  Match[]    @relation("HomeTeam")
-  awayMatches  Match[]    @relation("AwayTeam")
+  id             String          @id @default(uuid())
+  name           String
+  crestUrl       String?
+  tournamentId   String
+  tournament     Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  players        Player[]
+  homeMatches    Match[]         @relation("HomeTeam")
+  awayMatches    Match[]         @relation("AwayTeam")
+  memberships    Membership[]
+  playerRequests PlayerRequest[]
 
   @@unique([tournamentId, name])
 }
 
 model Player {
-  id       String  @id @default(uuid())
-  name     String
-  number   Int?
-  position String?
-  teamId   String
-  team     Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  goals    Goal[]
+  id         String      @id @default(uuid())
+  name       String
+  number     Int?
+  position   String?
+  teamId     String
+  team       Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  goals      Goal[]
+  cards      Card[]
+  membership Membership?
 }
 
 model Match {
@@ -78,16 +193,21 @@ model Match {
   homeScore    Int?
   awayScore    Int?
   status       MatchStatus @default(SCHEDULED)
+  refereeId    String?
+  referee      User?       @relation("MatchReferee", fields: [refereeId], references: [id], onDelete: SetNull)
+  /// Referee's notes on what happened in the match
+  observations String?
   goals        Goal[]
+  cards        Card[]
 
   @@index([tournamentId, round])
 }
 
 model Goal {
-  id       String  @id @default(uuid())
+  id       String @id @default(uuid())
   matchId  String
-  match    Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  match    Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
   playerId String
-  player   Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   minute   Int?
 }

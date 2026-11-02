@@ -13,15 +13,12 @@ import { useGenerateFixture, useMatches } from '@/lib/queries';
 function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string }) {
   const played = match.status === 'PLAYED';
   return (
-    <Link
-      href={{ pathname: '/matches/[id]', params: { id: match.id, tournamentId } }}
-      asChild
-    >
+    <Link href={{ pathname: '/matches/[id]', params: { id: match.id, tournamentId } }} asChild>
       <ListRow
         accessibilityLabel={
           played
             ? `${match.homeTeam.name} ${match.homeScore}, ${match.awayTeam.name} ${match.awayScore}`
-            : `${match.homeTeam.name} contra ${match.awayTeam.name}, registrar resultado`
+            : `${match.homeTeam.name} contra ${match.awayTeam.name}, ver partido`
         }
       >
         <ThemedText type="smallBold" style={styles.teamName} numberOfLines={2}>
@@ -36,11 +33,7 @@ function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string 
             vs
           </ThemedText>
         )}
-        <ThemedText
-          type="smallBold"
-          style={[styles.teamName, styles.awayName]}
-          numberOfLines={2}
-        >
+        <ThemedText type="smallBold" style={[styles.teamName, styles.awayName]} numberOfLines={2}>
           {match.awayTeam.name}
         </ThemedText>
       </ListRow>
@@ -51,9 +44,11 @@ function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string 
 export function FixtureSection({
   tournamentId,
   teamCount,
+  isAdmin,
 }: {
   tournamentId: string;
   teamCount: number;
+  isAdmin: boolean;
 }) {
   const { data, isPending, isError, error } = useMatches(tournamentId);
   const generateFixture = useGenerateFixture(tournamentId);
@@ -76,18 +71,22 @@ export function FixtureSection({
         <EmptyView
           title="Sin calendario todavía"
           hint={
-            teamCount < 2
-              ? 'Agrega al menos 2 equipos primero.'
-              : `Genera el calendario para ${teamCount} equipos.`
+            !isAdmin
+              ? 'El administrador publicará el calendario cuando estén los equipos.'
+              : teamCount < 2
+                ? 'Agrega al menos 2 equipos primero.'
+                : `Genera el calendario para ${teamCount} equipos.`
           }
         />
         {generateError ? <ThemedText themeColor="danger">{generateError}</ThemedText> : null}
-        <Button
-          title="Generar calendario"
-          disabled={teamCount < 2}
-          loading={generateFixture.isPending}
-          onPress={generate}
-        />
+        {isAdmin ? (
+          <Button
+            title="Generar calendario"
+            disabled={teamCount < 2}
+            loading={generateFixture.isPending}
+            onPress={generate}
+          />
+        ) : null}
       </View>
     );
   }

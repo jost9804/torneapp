@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { Colors, FontFamily } from '@/constants/theme';
+import { AuthProvider } from '@/lib/auth';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -61,29 +62,42 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={navigationTheme(colorScheme)}>
-        <Stack
-          screenOptions={{
-            // iOS 26 defaults to a see-through Liquid Glass bar that content scrolls under;
-            // keep the solid matchday header so nothing hides behind the title.
-            headerTransparent: false,
-            headerShadowVisible: false,
-            headerTitleStyle: { fontFamily: FontFamily.displayBold, fontSize: 22 },
-          }}
-        >
-          <Stack.Screen name="index" options={{ title: 'TorneApp' }} />
-          <Stack.Screen
-            name="new-tournament"
-            options={{ title: 'Nuevo torneo', presentation: 'modal' }}
-          />
-          <Stack.Screen name="tournaments/[id]" options={{ title: 'Torneo' }} />
-          <Stack.Screen
-            name="matches/[id]"
-            options={{ title: 'Resultado', presentation: 'modal' }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider value={navigationTheme(colorScheme)}>
+          <Stack
+            screenOptions={{
+              // iOS 26 defaults to a see-through Liquid Glass bar that content scrolls under;
+              // keep the solid matchday header so nothing hides behind the title.
+              headerTransparent: false,
+              headerShadowVisible: false,
+              headerTitleStyle: { fontFamily: FontFamily.displayBold, fontSize: 22 },
+            }}
+          >
+            <Stack.Screen name="index" options={{ title: 'TorneApp' }} />
+            <Stack.Screen
+              name="new-tournament"
+              options={{ title: 'Nuevo torneo', presentation: 'modal' }}
+            />
+            <Stack.Screen name="tournaments/[id]" options={{ title: 'Torneo' }} />
+            <Stack.Screen
+              name="matches/[id]"
+              options={{ title: 'Partido', presentation: 'modal' }}
+            />
+            <Stack.Screen name="members/[id]" options={{ title: 'Miembros' }} />
+            <Stack.Screen
+              name="join/[id]"
+              options={{ title: 'Unirme al torneo', presentation: 'modal' }}
+            />
+            <Stack.Screen name="login" options={{ title: 'Entrar', presentation: 'modal' }} />
+            <Stack.Screen
+              name="register"
+              options={{ title: 'Crear cuenta', presentation: 'modal' }}
+            />
+            <Stack.Screen name="account" options={{ title: 'Mi cuenta' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,8 +1,8 @@
 import * as WebBrowser from 'expo-web-browser';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -12,11 +12,12 @@ import { StandingsSection } from '@/components/tournament/standings-section';
 import { TeamsSection } from '@/components/tournament/teams-section';
 import { Segmented } from '@/components/ui/segmented';
 import { ErrorView, LoadingView } from '@/components/ui/status-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, type TournamentFormat } from '@/lib/api';
-import { plural } from '@/lib/format';
-import { useTournament } from '@/lib/queries';
+import { tournamentAccess, useRequireAuth } from '@/lib/auth';
+import { plural, ROLE_LABEL } from '@/lib/format';
+import { useTournament, useTournamentReaction } from '@/lib/queries';
 
 type Section = 'teams' | 'fixture' | 'standings' | 'scorers';
 
@@ -25,16 +26,60 @@ const FORMAT_LABEL: Record<TournamentFormat, string> = {
   ROUND_ROBIN_HOME_AWAY: 'Ida y vuelta',
 };
 
+/** Outlined pill on the turf band; filled when the action is on (liked, following). */
+function BandAction({
+  label,
+  active = false,
+  onPress,
+}: {
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.action,
+        { borderColor: theme.onBrand },
+        active && { backgroundColor: theme.onBrand },
+        pressed && { opacity: 0.7 },
+      ]}
+    >
+      <ThemedText type="smallBold" style={{ color: active ? theme.brand : theme.onBrand }}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 export default function TournamentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
   const { data, isPending, isError, error } = useTournament(id);
   const [section, setSection] = useState<Section>('teams');
+  const reaction = useTournamentReaction(id);
+  const requireAuth = useRequireAuth();
 
   if (isPending) return <LoadingView />;
   if (isError) return <ErrorView message={error.message} />;
 
   const fixtureGenerated = (data._count?.matches ?? 0) > 0;
+  const access = tournamentAccess(data);
+  const liked = data.viewer?.liked ?? false;
+  const followed = data.viewer?.followed ?? false;
+  const activeRoles = access.memberships
+    .filter((m) => m.status === 'ACTIVE')
+    .map((m) => ROLE_LABEL[m.role]);
+  const roleLine =
+    activeRoles.length > 0
+      ? `Eres ${activeRoles.join(' y ').toLowerCase()}`
+      : access.pending.length > 0
+        ? 'Tu solicitud espera aprobación'
+        : null;
 
   return (
     <ThemedView style={styles.container}>
@@ -71,6 +116,35 @@ export default function TournamentDetailScreen() {
                 </ThemedText>
               ) : null}
             </View>
+            <View style={styles.actions}>
+              <BandAction
+                label={`Me gusta · ${data._count?.likes ?? 0}`}
+                active={liked}
+                onPress={() => requireAuth(() => reaction.like.mutate(!liked))}
+              />
+              <BandAction
+                label={followed ? 'Siguiendo' : 'Seguir'}
+                active={followed}
+                onPress={() => requireAuth(() => reaction.follow.mutate(!followed))}
+              />
+              {access.memberships.length === 0 ? (
+                <BandAction
+                  label="Unirme"
+                  onPress={() =>
+                    requireAuth(() => router.push({ pathname: '/join/[id]', params: { id } }))
+                  }
+                />
+              ) : null}
+              <BandAction
+                label={access.isAdmin ? 'Gestionar miembros' : 'Miembros'}
+                onPress={() => router.push({ pathname: '/members/[id]', params: { id } })}
+              />
+            </View>
+            {roleLine ? (
+              <ThemedText type="small" themeColor="onBrand">
+                {roleLine}
+              </ThemedText>
+            ) : null}
           </View>
         </View>
         <View style={styles.content}>
@@ -85,10 +159,20 @@ export default function TournamentDetailScreen() {
             ]}
           />
           {section === 'teams' ? (
-            <TeamsSection tournamentId={id} fixtureGenerated={fixtureGenerated} />
+            <TeamsSection
+              tournamentId={id}
+              fixtureGenerated={fixtureGenerated}
+              isAdmin={access.isAdmin}
+              coachTeamIds={access.coachTeamIds}
+              playerIds={access.playerIds}
+            />
           ) : null}
           {section === 'fixture' ? (
-            <FixtureSection tournamentId={id} teamCount={data._count?.teams ?? 0} />
+            <FixtureSection
+              tournamentId={id}
+              teamCount={data._count?.teams ?? 0}
+              isAdmin={access.isAdmin}
+            />
           ) : null}
           {section === 'standings' ? <StandingsSection tournamentId={id} /> : null}
           {section === 'scorers' ? <ScorersSection tournamentId={id} /> : null}
@@ -124,6 +208,21 @@ const styles = StyleSheet.create({
   },
   meta: {
     gap: Spacing.one,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    paddingTop: Spacing.one,
+  },
+  action: {
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    borderCurve: 'continuous',
+    paddingVertical: Spacing.one + 2,
+    paddingHorizontal: Spacing.three,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   rulesLink: {
     textDecorationLine: 'underline',

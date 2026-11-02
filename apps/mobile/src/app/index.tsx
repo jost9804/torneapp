@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, router, Stack } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,6 +9,7 @@ import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import type { Tournament } from '@/lib/api';
 import { plural } from '@/lib/format';
+import { useAuth, useRequireAuth } from '@/lib/auth';
 import { useTournaments } from '@/lib/queries';
 
 const STATUS_LABEL: Record<Tournament['status'], string> = {
@@ -41,14 +42,33 @@ function TournamentRow({ tournament }: { tournament: Tournament }) {
   );
 }
 
+function AccountButton() {
+  const auth = useAuth();
+  if (auth.status === 'loading') return null;
+  const signedIn = auth.status === 'signedIn';
+  return (
+    <ThemedText
+      type="linkPrimary"
+      accessibilityRole="button"
+      onPress={() => router.push(signedIn ? '/account' : '/login')}
+      style={styles.headerAction}
+      numberOfLines={1}
+    >
+      {signedIn ? auth.user.name.split(' ')[0] : 'Entrar'}
+    </ThemedText>
+  );
+}
+
 export default function TournamentsScreen() {
   const { data, isPending, isError, error, refetch, isRefetching } = useTournaments();
+  const requireAuth = useRequireAuth();
 
   if (isPending) return <LoadingView />;
   if (isError) return <ErrorView message={error.message} />;
 
   return (
     <ThemedView style={styles.container}>
+      <Stack.Screen options={{ headerRight: () => <AccountButton /> }} />
       <View style={styles.content}>
         <FlatList
           data={data}
@@ -64,9 +84,10 @@ export default function TournamentsScreen() {
             />
           }
         />
-        <Link href="/new-tournament" asChild>
-          <Button title="Nuevo torneo" />
-        </Link>
+        <Button
+          title="Nuevo torneo"
+          onPress={() => requireAuth(() => router.push('/new-tournament'))}
+        />
       </View>
     </ThemedView>
   );
@@ -86,6 +107,10 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 1,
+  },
+  headerAction: {
+    maxWidth: 140,
+    paddingHorizontal: Spacing.two,
   },
   rowText: {
     flex: 1,

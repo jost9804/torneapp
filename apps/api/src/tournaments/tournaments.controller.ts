@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -44,9 +45,17 @@ export class TournamentsController {
     return this.tournaments.create(user, dto);
   }
 
+  /** `sort=popular` orders by likes; `following=true` keeps the ones the user follows */
   @Get()
-  findAll(@CurrentUser() user: AuthUser | undefined) {
-    return this.tournaments.findAll(user);
+  findAll(
+    @CurrentUser() user: AuthUser | undefined,
+    @Query('sort') sort?: string,
+    @Query('following') following?: string,
+  ) {
+    return this.tournaments.findAll(user, {
+      popular: sort === 'popular',
+      following: following === 'true',
+    });
   }
 
   @Get(':id')

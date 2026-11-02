@@ -12,8 +12,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { Colors, FontFamily } from '@/constants/theme';
+import { Colors, STACK_SCREEN_OPTIONS } from '@/constants/theme';
 import { AuthProvider } from '@/lib/auth';
+import { restoreAppearance } from '@/lib/preferences';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,32 +59,23 @@ export default function RootLayout() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
+  useEffect(() => {
+    restoreAppearance();
+  }, []);
+
   if (!ready) return null;
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider value={navigationTheme(colorScheme)}>
-          <Stack
-            screenOptions={{
-              // iOS 26 defaults to a see-through Liquid Glass bar that content scrolls under;
-              // keep the solid matchday header so nothing hides behind the title.
-              headerTransparent: false,
-              headerShadowVisible: false,
-              headerTitleStyle: { fontFamily: FontFamily.displayBold, fontSize: 22 },
-            }}
-          >
-            <Stack.Screen name="index" options={{ title: 'TorneApp' }} />
-            <Stack.Screen
-              name="new-tournament"
-              options={{ title: 'Nuevo torneo', presentation: 'modal' }}
-            />
-            <Stack.Screen name="tournaments/[id]" options={{ title: 'Torneo' }} />
+          {/* Tabs sit at the root; the modals below open over whichever tab is active */}
+          <Stack screenOptions={STACK_SCREEN_OPTIONS}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="matches/[id]"
               options={{ title: 'Partido', presentation: 'modal' }}
             />
-            <Stack.Screen name="members/[id]" options={{ title: 'Miembros' }} />
             <Stack.Screen
               name="join/[id]"
               options={{ title: 'Unirme al torneo', presentation: 'modal' }}
@@ -93,7 +85,6 @@ export default function RootLayout() {
               name="register"
               options={{ title: 'Crear cuenta', presentation: 'modal' }}
             />
-            <Stack.Screen name="account" options={{ title: 'Mi cuenta' }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

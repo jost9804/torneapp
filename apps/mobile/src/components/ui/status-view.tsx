@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -23,7 +24,16 @@ export function ErrorView({ message }: { message?: string }) {
   );
 }
 
-export function EmptyView({ title, hint }: { title: string; hint?: string }) {
+/** `action` sits right under the message so it never drifts behind a tab bar. */
+export function EmptyView({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+}) {
   return (
     <View style={styles.center}>
       <ThemedText type="smallBold">{title}</ThemedText>
@@ -32,6 +42,7 @@ export function EmptyView({ title, hint }: { title: string; hint?: string }) {
           {hint}
         </ThemedText>
       ) : null}
+      {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );
 }
@@ -46,5 +57,10 @@ const styles = StyleSheet.create({
   },
   hint: {
     textAlign: 'center',
+  },
+  action: {
+    maxWidth: 360,
+    width: '100%',
+    marginTop: Spacing.three,
   },
 });

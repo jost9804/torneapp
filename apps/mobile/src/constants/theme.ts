@@ -90,3 +90,12 @@ export const Radius = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+/** Headers shared by every stack: solid bar and display-face titles. */
+export const STACK_SCREEN_OPTIONS = {
+  // iOS 26 defaults to a see-through Liquid Glass bar that content scrolls under;
+  // keep the solid matchday header so nothing hides behind the title.
+  headerTransparent: false,
+  headerShadowVisible: false,
+  headerTitleStyle: { fontFamily: FontFamily.displayBold, fontSize: 22 },
+} as const;

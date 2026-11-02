@@ -1,8 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type CardType, type Role, type Tournament, TournamentFormat } from './api';
+import {
+  api,
+  type CardType,
+  type Role,
+  type Tournament,
+  TournamentFormat,
+  type TournamentListView,
+} from './api';
 
 export const keys = {
   tournaments: ['tournaments'] as const,
+  /** Every list variant (popular, following) shares this prefix */
+  lists: ['tournaments', 'list'] as const,
+  list: (view: TournamentListView) => ['tournaments', 'list', view] as const,
   tournament: (id: string) => ['tournaments', id] as const,
   teams: (tournamentId: string) => ['tournaments', tournamentId, 'teams'] as const,
   matches: (tournamentId: string) => ['tournaments', tournamentId, 'matches'] as const,
@@ -13,8 +23,16 @@ export const keys = {
     ['tournaments', tournamentId, 'player-requests'] as const,
 };
 
-export function useTournaments() {
-  return useQuery({ queryKey: keys.tournaments, queryFn: api.tournaments.list });
+export function useTournaments(view: TournamentListView = 'recent') {
+  return useQuery({ queryKey: keys.list(view), queryFn: () => api.tournaments.list(view) });
+}
+
+export function useFollowedTournaments(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.list('following'),
+    queryFn: () => api.tournaments.list('following'),
+    enabled,
+  });
 }
 
 export function useTournament(id: string) {
@@ -56,7 +74,7 @@ export function useCreateTournament() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; format?: TournamentFormat }) => api.tournaments.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.tournaments }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.lists }),
   });
 }
 
@@ -66,7 +84,7 @@ export function useUploadRules(tournamentId: string) {
     mutationFn: (form: FormData) => api.tournaments.uploadRules(tournamentId, form),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.tournament(tournamentId) });
-      queryClient.invalidateQueries({ queryKey: keys.tournaments });
+      queryClient.invalidateQueries({ queryKey: keys.lists });
     },
   });
 }
@@ -152,7 +170,7 @@ export function useTournamentReaction(tournamentId: string) {
   const queryClient = useQueryClient();
   const onSuccess = (tournament: Tournament) => {
     queryClient.setQueryData(keys.tournament(tournamentId), tournament);
-    queryClient.invalidateQueries({ queryKey: keys.tournaments, exact: true });
+    queryClient.invalidateQueries({ queryKey: keys.lists });
   };
   return {
     like: useMutation({

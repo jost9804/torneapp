@@ -1,22 +1,24 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { Segmented } from '@/components/ui/segmented';
+import { EmptyView, LoadingView } from '@/components/ui/status-view';
 import { TextField } from '@/components/ui/text-field';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { api, TournamentFormat } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { useCreateTournament } from '@/lib/queries';
 
-export default function NewTournamentScreen() {
+export default function CreateTournamentScreen() {
+  const auth = useAuth();
   const [name, setName] = useState('');
   const [format, setFormat] = useState<TournamentFormat>('ROUND_ROBIN');
-  const [rulesFile, setRulesFile] =
-    useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [rulesFile, setRulesFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [error, setError] = useState<string | null>(null);
   const createTournament = useCreateTournament();
 
@@ -48,22 +50,41 @@ export default function NewTournamentScreen() {
         }
         await api.tournaments.uploadRules(tournament.id, form);
       }
-      if (router.canDismiss()) router.dismiss();
+      // Leave the tab ready for the next one, then open the new tournament
+      setName('');
+      setFormat('ROUND_ROBIN');
+      setRulesFile(null);
       router.push({ pathname: '/tournaments/[id]', params: { id: tournament.id } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo crear el torneo');
     }
   };
 
+  if (auth.status === 'loading') return <LoadingView />;
+  if (auth.status === 'signedOut') {
+    return (
+      <ThemedView style={styles.signedOut}>
+        <EmptyView
+          title="Crea tu torneo"
+          hint="Entra con tu cuenta para crear un torneo. Quedarás como su administrador."
+          action={<Button title="Entrar" onPress={() => router.push('/login')} />}
+        />
+      </ThemedView>
+    );
+  }
+
   return (
-    <ThemedView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.content}>
         <TextField
           label="Nombre del torneo"
           placeholder="Torneo Municipal 2026"
           value={name}
           onChangeText={setName}
-          autoFocus
           maxLength={80}
         />
         <View style={styles.field}>
@@ -97,7 +118,7 @@ export default function NewTournamentScreen() {
           loading={createTournament.isPending}
         />
       </View>
-    </ThemedView>
+    </ScrollView>
   );
 }
 
@@ -114,5 +135,9 @@ const styles = StyleSheet.create({
   },
   field: {
     gap: Spacing.one,
+  },
+  signedOut: {
+    flex: 1,
+    padding: Spacing.three,
   },
 });

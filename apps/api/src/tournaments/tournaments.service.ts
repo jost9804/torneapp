@@ -28,9 +28,16 @@ export class TournamentsService {
     });
   }
 
-  async findAll(user: AuthUser | undefined) {
+  async findAll(
+    user: AuthUser | undefined,
+    { popular = false, following = false }: { popular?: boolean; following?: boolean } = {},
+  ) {
+    const followerId = following ? this.access.signedIn(user).id : null;
     const tournaments = await this.prisma.tournament.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: followerId ? { follows: { some: { userId: followerId } } } : undefined,
+      orderBy: popular
+        ? [{ likes: { _count: 'desc' } }, { follows: { _count: 'desc' } }, { createdAt: 'desc' }]
+        : { createdAt: 'desc' },
       include: COUNTS,
     });
     return Promise.all(tournaments.map((t) => this.withViewer(t, user)));

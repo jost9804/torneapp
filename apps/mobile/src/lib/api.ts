@@ -171,6 +171,8 @@ const json = (method: string, body?: unknown): RequestInit => ({
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 
+export type TournamentListView = 'recent' | 'popular' | 'following';
+
 export type AddPlayerResult =
   { status: 'ADDED'; player: Player } | { status: 'PENDING'; request: PlayerRequest };
 
@@ -186,7 +188,14 @@ export const api = {
     me: () => request<User & { memberships: ViewerMembership[] }>('/auth/me'),
   },
   tournaments: {
-    list: () => request<Tournament[]>('/tournaments'),
+    list: (view: TournamentListView = 'recent') =>
+      request<Tournament[]>(
+        view === 'popular'
+          ? '/tournaments?sort=popular'
+          : view === 'following'
+            ? '/tournaments?following=true'
+            : '/tournaments',
+      ),
     get: (id: string) => request<Tournament>(`/tournaments/${id}`),
     create: (data: { name: string; format?: TournamentFormat }) =>
       request<Tournament>('/tournaments', {

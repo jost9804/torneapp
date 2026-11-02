@@ -12,9 +12,9 @@ import { plural } from '@/lib/format';
 import { useTournaments } from '@/lib/queries';
 
 const STATUS_LABEL: Record<Tournament['status'], string> = {
-  DRAFT: 'Draft',
-  ACTIVE: 'In progress',
-  FINISHED: 'Finished',
+  DRAFT: 'Borrador',
+  ACTIVE: 'En juego',
+  FINISHED: 'Finalizado',
 };
 
 function TournamentRow({ tournament }: { tournament: Tournament }) {
@@ -26,8 +26,8 @@ function TournamentRow({ tournament }: { tournament: Tournament }) {
             {tournament.name}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Football 11 · {plural(tournament._count?.teams ?? 0, 'team', 'teams')} ·{' '}
-            {plural(tournament._count?.matches ?? 0, 'match', 'matches')}
+            Fútbol 11 · {plural(tournament._count?.teams ?? 0, 'equipo', 'equipos')} ·{' '}
+            {plural(tournament._count?.matches ?? 0, 'partido', 'partidos')}
           </ThemedText>
         </View>
         <ThemedText
@@ -59,13 +59,13 @@ export default function TournamentsScreen() {
           refreshing={isRefetching}
           ListEmptyComponent={
             <EmptyView
-              title="No tournaments yet"
-              hint="Create your first tournament to get started."
+              title="Crea tu primer torneo"
+              hint="Organiza equipos, calendario y tabla de posiciones en un solo lugar."
             />
           }
         />
         <Link href="/new-tournament" asChild>
-          <Button title="New tournament" />
+          <Button title="Nuevo torneo" />
         </Link>
       </View>
     </ThemedView>

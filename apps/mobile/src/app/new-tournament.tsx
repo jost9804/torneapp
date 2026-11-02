@@ -51,7 +51,7 @@ export default function NewTournamentScreen() {
       if (router.canDismiss()) router.dismiss();
       router.push({ pathname: '/tournaments/[id]', params: { id: tournament.id } });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create the tournament');
+      setError(e instanceof Error ? e.message : 'No se pudo crear el torneo');
     }
   };
 
@@ -59,8 +59,8 @@ export default function NewTournamentScreen() {
     <ThemedView style={styles.container}>
       <View style={styles.content}>
         <TextField
-          label="Tournament name"
-          placeholder="e.g. Torneo Municipal 2026"
+          label="Nombre del torneo"
+          placeholder="Torneo Municipal 2026"
           value={name}
           onChangeText={setName}
           autoFocus
@@ -68,30 +68,30 @@ export default function NewTournamentScreen() {
         />
         <View style={styles.field}>
           <ThemedText type="smallBold" themeColor="textSecondary">
-            Format
+            Formato
           </ThemedText>
           <Segmented
             value={format}
             onChange={setFormat}
             options={[
-              { value: 'ROUND_ROBIN', label: 'Single round-robin' },
-              { value: 'ROUND_ROBIN_HOME_AWAY', label: 'Home & away' },
+              { value: 'ROUND_ROBIN', label: 'Todos contra todos' },
+              { value: 'ROUND_ROBIN_HOME_AWAY', label: 'Ida y vuelta' },
             ]}
           />
         </View>
         <View style={styles.field}>
           <ThemedText type="smallBold" themeColor="textSecondary">
-            Rules (PDF, optional)
+            Reglamento (PDF, opcional)
           </ThemedText>
           <Button
-            title={rulesFile ? (rulesFile.name ?? 'PDF selected') : 'Attach rules PDF'}
+            title={rulesFile ? (rulesFile.name ?? 'PDF seleccionado') : 'Adjuntar reglamento'}
             variant="secondary"
             onPress={pickRulesPdf}
           />
         </View>
         {error ? <ThemedText themeColor="danger">{error}</ThemedText> : null}
         <Button
-          title="Create tournament"
+          title="Crear torneo"
           onPress={submit}
           disabled={name.trim().length === 0}
           loading={createTournament.isPending}

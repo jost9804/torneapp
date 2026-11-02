@@ -13,7 +13,7 @@ export function ScorersSection({ tournamentId }: { tournamentId: string }) {
   if (isError) return <ErrorView message={error.message} />;
   if (data.length === 0) {
     return (
-      <EmptyView title="No goals yet" hint="Record match results to see top scorers." />
+      <EmptyView title="Sin goles todavía" hint="Registra resultados para ver los goleadores." />
     );
   }
 

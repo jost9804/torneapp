@@ -31,7 +31,7 @@ function AddPlayerForm({ team, tournamentId }: { team: Team; tournamentId: strin
   return (
     <View style={styles.addPlayerRow}>
       <View style={styles.addPlayerName}>
-        <TextField placeholder="Player name" value={name} onChangeText={setName} />
+        <TextField placeholder="Nombre del jugador" value={name} onChangeText={setName} />
       </View>
       <View style={styles.addPlayerNumber}>
         <TextField
@@ -43,7 +43,7 @@ function AddPlayerForm({ team, tournamentId }: { team: Team; tournamentId: strin
         />
       </View>
       <Button
-        title="Add"
+        title="Agregar"
         variant="secondary"
         disabled={name.trim().length === 0}
         loading={createPlayer.isPending}
@@ -76,7 +76,7 @@ function TeamRow({
           {team.name}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {plural(team.players.length, 'player', 'players')} {expanded ? '▲' : '▼'}
+          {plural(team.players.length, 'jugador', 'jugadores')} {expanded ? '▲' : '▼'}
         </ThemedText>
       </ListRow>
       {expanded ? (
@@ -98,7 +98,7 @@ function TeamRow({
           ))}
           {team.players.length === 0 ? (
             <ThemedText type="small" themeColor="textSecondary">
-              No players yet.
+              Sin jugadores todavía.
             </ThemedText>
           ) : null}
           {canEdit ? <AddPlayerForm team={team} tournamentId={tournamentId} /> : null}
@@ -129,7 +129,7 @@ export function TeamsSection({
       await createTeam.mutateAsync({ name: teamName.trim() });
       setTeamName('');
     } catch (e) {
-      setFormError(e instanceof Error ? e.message : 'Could not add the team');
+      setFormError(e instanceof Error ? e.message : 'No se pudo agregar el equipo');
     }
   };
 
@@ -139,14 +139,14 @@ export function TeamsSection({
         <View style={styles.addTeamRow}>
           <View style={styles.addTeamField}>
             <TextField
-              placeholder="Team name"
+              placeholder="Nombre del equipo"
               value={teamName}
               onChangeText={setTeamName}
               maxLength={60}
             />
           </View>
           <Button
-            title="Add team"
+            title="Agregar equipo"
             disabled={teamName.trim().length === 0}
             loading={createTeam.isPending}
             onPress={addTeam}
@@ -155,7 +155,7 @@ export function TeamsSection({
       ) : null}
       {formError ? <ThemedText themeColor="danger">{formError}</ThemedText> : null}
       {data.length === 0 ? (
-        <EmptyView title="No teams yet" hint="Add at least 2 teams to generate a fixture." />
+        <EmptyView title="Sin equipos todavía" hint="Agrega al menos 2 equipos para generar el calendario." />
       ) : (
         <View>
           {data.map((team) => (

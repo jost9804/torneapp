@@ -21,8 +21,8 @@ import { useTournament } from '@/lib/queries';
 type Section = 'teams' | 'fixture' | 'standings' | 'scorers';
 
 const FORMAT_LABEL: Record<TournamentFormat, string> = {
-  ROUND_ROBIN: 'Single round robin',
-  ROUND_ROBIN_HOME_AWAY: 'Home and away',
+  ROUND_ROBIN: 'Todos contra todos',
+  ROUND_ROBIN_HOME_AWAY: 'Ida y vuelta',
 };
 
 export default function TournamentDetailScreen() {
@@ -56,7 +56,7 @@ export default function TournamentDetailScreen() {
             </ThemedText>
             <View style={styles.meta}>
               <ThemedText type="small" themeColor="onBrand">
-                Football 11 · {plural(data._count?.teams ?? 0, 'team', 'teams')} ·{' '}
+                Fútbol 11 · {plural(data._count?.teams ?? 0, 'equipo', 'equipos')} ·{' '}
                 {FORMAT_LABEL[data.format]}
               </ThemedText>
               {data.rulesPdfPath ? (
@@ -67,7 +67,7 @@ export default function TournamentDetailScreen() {
                   accessibilityRole="link"
                   onPress={() => WebBrowser.openBrowserAsync(api.tournaments.rulesUrl(id))}
                 >
-                  Tournament rules (PDF)
+                  Reglamento (PDF)
                 </ThemedText>
               ) : null}
             </View>
@@ -78,10 +78,10 @@ export default function TournamentDetailScreen() {
             value={section}
             onChange={setSection}
             options={[
-              { value: 'teams', label: 'Teams' },
-              { value: 'fixture', label: 'Fixture' },
-              { value: 'standings', label: 'Standings' },
-              { value: 'scorers', label: 'Top scorers' },
+              { value: 'teams', label: 'Equipos' },
+              { value: 'fixture', label: 'Calendario' },
+              { value: 'standings', label: 'Tabla' },
+              { value: 'scorers', label: 'Goleadores' },
             ]}
           />
           {section === 'teams' ? (

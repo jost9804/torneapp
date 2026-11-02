@@ -50,15 +50,19 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   row: {
+    flexGrow: 1,
     flexDirection: 'row',
     borderRadius: Radius.md,
     borderCurve: 'continuous',
     padding: Spacing.half,
     gap: Spacing.half,
   },
+  // Segments share the width when they fit and scroll when they don't
   segment: {
+    flexGrow: 1,
+    alignItems: 'center',
     paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
+    paddingHorizontal: Spacing.two + Spacing.one,
     borderRadius: Radius.sm,
     borderCurve: 'continuous',
   },

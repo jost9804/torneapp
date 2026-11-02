@@ -21,7 +21,7 @@ function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string 
         accessibilityLabel={
           played
             ? `${match.homeTeam.name} ${match.homeScore}, ${match.awayTeam.name} ${match.awayScore}`
-            : `${match.homeTeam.name} versus ${match.awayTeam.name}, record result`
+            : `${match.homeTeam.name} contra ${match.awayTeam.name}, registrar resultado`
         }
       >
         <ThemedText type="smallBold" style={styles.teamName} numberOfLines={2}>
@@ -68,22 +68,22 @@ export function FixtureSection({
       try {
         await generateFixture.mutateAsync();
       } catch (e) {
-        setGenerateError(e instanceof Error ? e.message : 'Could not generate the fixture');
+        setGenerateError(e instanceof Error ? e.message : 'No se pudo generar el calendario');
       }
     };
     return (
       <View style={styles.emptyWrapper}>
         <EmptyView
-          title="No fixture yet"
+          title="Sin calendario todavía"
           hint={
             teamCount < 2
-              ? 'Add at least 2 teams first.'
-              : `Generate the calendar for ${teamCount} teams.`
+              ? 'Agrega al menos 2 equipos primero.'
+              : `Genera el calendario para ${teamCount} equipos.`
           }
         />
         {generateError ? <ThemedText themeColor="danger">{generateError}</ThemedText> : null}
         <Button
-          title="Generate fixture"
+          title="Generar calendario"
           disabled={teamCount < 2}
           loading={generateFixture.isPending}
           onPress={generate}
@@ -99,7 +99,7 @@ export function FixtureSection({
       {rounds.map((round) => (
         <View key={round}>
           <ThemedText type="smallBold" themeColor="textSecondary" style={styles.round}>
-            Round {round}
+            Fecha {round}
           </ThemedText>
           {data
             .filter((match) => match.round === round)

@@ -28,7 +28,7 @@ function ScorerPicker({
   return (
     <View style={styles.scorers}>
       <ThemedText type="smallBold" themeColor="textSecondary">
-        {team.name} scorers ({selected.length}/{count})
+        Goles de {team.name} ({selected.length}/{count})
       </ThemedText>
       <View style={styles.chips}>
         {team.players.map((player) => {
@@ -79,7 +79,7 @@ export default function MatchResultScreen() {
   if (matches.isError) return <ErrorView message={matches.error.message} />;
 
   const match = matches.data.find((m) => m.id === id);
-  if (!match) return <ErrorView message="Match not found" />;
+  if (!match) return <ErrorView message="No encontramos este partido." />;
 
   const homeTeam = teams?.find((t) => t.id === match.homeTeam.id);
   const awayTeam = teams?.find((t) => t.id === match.awayTeam.id);
@@ -118,7 +118,7 @@ export default function MatchResultScreen() {
         router.replace({ pathname: '/tournaments/[id]', params: { id: tournamentId } });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save the result');
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el resultado');
     }
   };
 
@@ -127,7 +127,7 @@ export default function MatchResultScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.content}>
           <ThemedText type="small" themeColor="textSecondary" style={styles.centered}>
-            Round {match.round}
+            Fecha {match.round}
           </ThemedText>
           <View style={styles.scoreRow}>
             <View style={styles.scoreTeam}>
@@ -184,7 +184,7 @@ export default function MatchResultScreen() {
           ) : null}
           {error ? <ThemedText themeColor="danger">{error}</ThemedText> : null}
           <Button
-            title="Save result"
+            title="Guardar resultado"
             disabled={!valid}
             loading={recordResult.isPending}
             onPress={submit}

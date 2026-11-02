@@ -73,15 +73,21 @@ export interface TopScorer {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    headers:
-      init?.body && !(init.body instanceof FormData)
-        ? { 'Content-Type': 'application/json' }
-        : undefined,
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      headers:
+        init?.body && !(init.body instanceof FormData)
+          ? { 'Content-Type': 'application/json' }
+          : undefined,
+      ...init,
+    });
+  } catch {
+    // fetch only rejects when the server can't be reached
+    throw new Error('No hay conexión con el servidor. Revisa tu red e inténtalo de nuevo.');
+  }
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
+    let message = `La solicitud falló (${response.status})`;
     try {
       const body = await response.json();
       if (body.message) {

@@ -71,12 +71,12 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ title: 'TorneApp' }} />
           <Stack.Screen
             name="new-tournament"
-            options={{ title: 'New tournament', presentation: 'modal' }}
+            options={{ title: 'Nuevo torneo', presentation: 'modal' }}
           />
-          <Stack.Screen name="tournaments/[id]" options={{ title: 'Tournament' }} />
+          <Stack.Screen name="tournaments/[id]" options={{ title: 'Torneo' }} />
           <Stack.Screen
             name="matches/[id]"
-            options={{ title: 'Match result', presentation: 'modal' }}
+            options={{ title: 'Resultado', presentation: 'modal' }}
           />
         </Stack>
         <StatusBar style="auto" />

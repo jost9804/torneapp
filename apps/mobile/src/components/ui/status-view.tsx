@@ -17,7 +17,7 @@ export function ErrorView({ message }: { message?: string }) {
   return (
     <View style={styles.center}>
       <ThemedText themeColor="danger">
-        {message ?? 'Something went wrong. Check that the API is reachable.'}
+        {message ?? 'No se pudo cargar. Revisa la conexión e inténtalo de nuevo.'}
       </ThemedText>
     </View>
   );

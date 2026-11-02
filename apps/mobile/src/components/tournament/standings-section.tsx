@@ -12,18 +12,18 @@ type Column = { label: string; value: (row: StandingsRow) => string | number };
 const signed = (value: number) =>
   value > 0 ? `+${value}` : value < 0 ? `\u2212${Math.abs(value)}` : '0';
 
-const PLAYED: Column = { label: 'P', value: (row) => row.played };
-const GOAL_DIFF: Column = { label: 'GD', value: (row) => signed(row.goalDifference) };
+const PLAYED: Column = { label: 'PJ', value: (row) => row.played };
+const GOAL_DIFF: Column = { label: 'DG', value: (row) => signed(row.goalDifference) };
 
 /** Phones get the columns people check at the pitch; wider screens get the full sheet. */
 const COMPACT_COLUMNS: Column[] = [PLAYED, GOAL_DIFF];
 const FULL_COLUMNS: Column[] = [
   PLAYED,
-  { label: 'W', value: (row) => row.won },
-  { label: 'D', value: (row) => row.drawn },
-  { label: 'L', value: (row) => row.lost },
+  { label: 'G', value: (row) => row.won },
+  { label: 'E', value: (row) => row.drawn },
+  { label: 'P', value: (row) => row.lost },
   { label: 'GF', value: (row) => row.goalsFor },
-  { label: 'GA', value: (row) => row.goalsAgainst },
+  { label: 'GC', value: (row) => row.goalsAgainst },
   GOAL_DIFF,
 ];
 
@@ -37,7 +37,7 @@ export function StandingsSection({ tournamentId }: { tournamentId: string }) {
   if (isPending) return <LoadingView />;
   if (isError) return <ErrorView message={error.message} />;
   if (data.length === 0) {
-    return <EmptyView title="No standings yet" hint="Add teams to see the table." />;
+    return <EmptyView title="Sin posiciones todavía" hint="Agrega equipos para ver la tabla." />;
   }
 
   const columns = width >= FULL_TABLE_MIN_WIDTH ? FULL_COLUMNS : COMPACT_COLUMNS;
@@ -49,7 +49,7 @@ export function StandingsSection({ tournamentId }: { tournamentId: string }) {
           #
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary" style={styles.team}>
-          Team
+          Equipo
         </ThemedText>
         {columns.map((column) => (
           <ThemedText

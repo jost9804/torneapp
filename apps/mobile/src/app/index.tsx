@@ -1,13 +1,14 @@
 import { Link } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
+import { ListRow } from '@/components/ui/list-row';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import type { Tournament } from '@/lib/api';
+import { plural } from '@/lib/format';
 import { useTournaments } from '@/lib/queries';
 
 const STATUS_LABEL: Record<Tournament['status'], string> = {
@@ -16,27 +17,26 @@ const STATUS_LABEL: Record<Tournament['status'], string> = {
   FINISHED: 'Finished',
 };
 
-function TournamentCard({ tournament }: { tournament: Tournament }) {
-  const theme = useTheme();
+function TournamentRow({ tournament }: { tournament: Tournament }) {
   return (
     <Link href={{ pathname: '/tournaments/[id]', params: { id: tournament.id } }} asChild>
-      <Pressable
-        style={StyleSheet.flatten([
-          styles.card,
-          { backgroundColor: theme.backgroundElement },
-        ])}
-      >
-        <View style={styles.cardHeader}>
-          <ThemedText type="smallBold">{tournament.name}</ThemedText>
-          <ThemedText type="small" themeColor="accentText">
-            {STATUS_LABEL[tournament.status]}
+      <ListRow>
+        <View style={styles.rowText}>
+          <ThemedText type="heading" numberOfLines={1}>
+            {tournament.name}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Football 11 · {plural(tournament._count?.teams ?? 0, 'team', 'teams')} ·{' '}
+            {plural(tournament._count?.matches ?? 0, 'match', 'matches')}
           </ThemedText>
         </View>
-        <ThemedText type="small" themeColor="textSecondary">
-          Football 11 · {tournament._count?.teams ?? 0} teams ·{' '}
-          {tournament._count?.matches ?? 0} matches
+        <ThemedText
+          type="smallBold"
+          themeColor={tournament.status === 'ACTIVE' ? 'accentText' : 'textSecondary'}
+        >
+          {STATUS_LABEL[tournament.status]}
         </ThemedText>
-      </Pressable>
+      </ListRow>
     </Link>
   );
 }
@@ -53,7 +53,7 @@ export default function TournamentsScreen() {
         <FlatList
           data={data}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <TournamentCard tournament={item} />}
+          renderItem={({ item }) => <TournamentRow tournament={item} />}
           contentContainerStyle={styles.list}
           onRefresh={refetch}
           refreshing={isRefetching}
@@ -85,18 +85,10 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   list: {
-    gap: Spacing.two,
     flexGrow: 1,
   },
-  card: {
-    borderRadius: 12,
-    padding: Spacing.three,
-    gap: Spacing.one,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.two,
+  rowText: {
+    flex: 1,
+    gap: Spacing.half,
   },
 });

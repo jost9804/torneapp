@@ -7,7 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { ErrorView, LoadingView } from '@/components/ui/status-view';
 import { TextField } from '@/components/ui/text-field';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { FontFamily, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Team } from '@/lib/api';
 import { useMatches, useRecordResult, useTeams } from '@/lib/queries';
@@ -36,6 +36,8 @@ function ScorerPicker({
           return (
             <Pressable
               key={player.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: times > 0 }}
               onPress={() => onToggle(player.id)}
               style={[
                 styles.chip,
@@ -129,7 +131,7 @@ export default function MatchResultScreen() {
           </ThemedText>
           <View style={styles.scoreRow}>
             <View style={styles.scoreTeam}>
-              <ThemedText type="smallBold" numberOfLines={2} style={styles.centered}>
+              <ThemedText type="heading" numberOfLines={2} style={styles.centered}>
                 {match.homeTeam.name}
               </ThemedText>
               <TextField
@@ -144,11 +146,11 @@ export default function MatchResultScreen() {
                 style={styles.scoreInput}
               />
             </View>
-            <ThemedText type="subtitle" themeColor="textSecondary">
+            <ThemedText type="score" themeColor="textSecondary" style={styles.dash}>
               –
             </ThemedText>
             <View style={styles.scoreTeam}>
-              <ThemedText type="smallBold" numberOfLines={2} style={styles.centered}>
+              <ThemedText type="heading" numberOfLines={2} style={styles.centered}>
                 {match.awayTeam.name}
               </ThemedText>
               <TextField
@@ -209,7 +211,8 @@ const styles = StyleSheet.create({
   },
   scoreRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    // Bottom-aligned so the score boxes line up when one team name wraps
+    alignItems: 'flex-end',
     justifyContent: 'center',
     gap: Spacing.three,
   },
@@ -219,12 +222,18 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   scoreInput: {
-    width: 64,
+    width: 80,
+    minHeight: 72,
     textAlign: 'center',
-    fontSize: 24,
+    fontFamily: FontFamily.display,
+    fontSize: 44,
   },
   centered: {
     textAlign: 'center',
+  },
+  dash: {
+    // Centres the dash on the 72pt score boxes
+    paddingBottom: (72 - 50) / 2,
   },
   scorers: {
     gap: Spacing.two,
@@ -235,8 +244,11 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   chip: {
-    paddingVertical: Spacing.one + 2,
-    paddingHorizontal: Spacing.two + 2,
-    borderRadius: 16,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    minHeight: 40,
+    justifyContent: 'center',
+    borderRadius: Radius.sm,
+    borderCurve: 'continuous',
   },
 });

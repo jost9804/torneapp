@@ -3,11 +3,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { ListRow } from '@/components/ui/list-row';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Team } from '@/lib/api';
+import { plural } from '@/lib/format';
 import { useCreatePlayer, useCreateTeam, useTeams } from '@/lib/queries';
 
 function AddPlayerForm({ team, tournamentId }: { team: Team; tournamentId: string }) {
@@ -51,7 +53,7 @@ function AddPlayerForm({ team, tournamentId }: { team: Team; tournamentId: strin
   );
 }
 
-function TeamCard({
+function TeamRow({
   team,
   tournamentId,
   canEdit,
@@ -64,25 +66,29 @@ function TeamCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-      <View style={styles.cardHeader}>
-        <ThemedText type="smallBold">{team.name}</ThemedText>
-        <ThemedText
-          type="small"
-          themeColor="textSecondary"
-          onPress={() => setExpanded((value) => !value)}
-        >
-          {team.players.length} players {expanded ? '▲' : '▼'}
+    <View>
+      <ListRow
+        onPress={() => setExpanded((value) => !value)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
+        <ThemedText type="heading" style={styles.teamName} numberOfLines={1}>
+          {team.name}
         </ThemedText>
-      </View>
+        <ThemedText type="small" themeColor="textSecondary">
+          {plural(team.players.length, 'player', 'players')} {expanded ? '▲' : '▼'}
+        </ThemedText>
+      </ListRow>
       {expanded ? (
-        <View style={styles.players}>
+        <View style={[styles.players, { borderColor: theme.border }]}>
           {team.players.map((player) => (
             <View key={player.id} style={styles.playerRow}>
-              <ThemedText type="small" themeColor="textSecondary" style={styles.playerNumber}>
+              <ThemedText type="stat" themeColor="textSecondary" style={styles.playerNumber}>
                 {player.number ?? '–'}
               </ThemedText>
-              <ThemedText type="small">{player.name}</ThemedText>
+              <ThemedText type="small" style={styles.playerName}>
+                {player.name}
+              </ThemedText>
               {player.position ? (
                 <ThemedText type="small" themeColor="textSecondary">
                   {player.position}
@@ -151,14 +157,16 @@ export function TeamsSection({
       {data.length === 0 ? (
         <EmptyView title="No teams yet" hint="Add at least 2 teams to generate a fixture." />
       ) : (
-        data.map((team) => (
-          <TeamCard
-            key={team.id}
-            team={team}
-            tournamentId={tournamentId}
-            canEdit={!fixtureGenerated}
-          />
-        ))
+        <View>
+          {data.map((team) => (
+            <TeamRow
+              key={team.id}
+              team={team}
+              tournamentId={tournamentId}
+              canEdit={!fixtureGenerated}
+            />
+          ))}
+        </View>
       )}
     </View>
   );
@@ -176,18 +184,14 @@ const styles = StyleSheet.create({
   addTeamField: {
     flex: 1,
   },
-  card: {
-    borderRadius: 12,
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  teamName: {
+    flex: 1,
   },
   players: {
-    gap: Spacing.one,
+    gap: Spacing.two,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.one,
+    borderBottomWidth: 1,
   },
   playerRow: {
     flexDirection: 'row',
@@ -195,8 +199,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   playerNumber: {
-    width: 24,
+    width: 28,
     textAlign: 'right',
+  },
+  playerName: {
+    flex: 1,
   },
   addPlayerRow: {
     flexDirection: 'row',

@@ -1,39 +1,49 @@
 import { Link } from 'expo-router';
-import { Fragment, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { ListRow } from '@/components/ui/list-row';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import type { Match } from '@/lib/api';
 import { useGenerateFixture, useMatches } from '@/lib/queries';
 
 function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string }) {
-  const theme = useTheme();
   const played = match.status === 'PLAYED';
   return (
     <Link
       href={{ pathname: '/matches/[id]', params: { id: match.id, tournamentId } }}
       asChild
     >
-      <Pressable
-        style={StyleSheet.flatten([
-          styles.matchRow,
-          { backgroundColor: theme.backgroundElement },
-        ])}
+      <ListRow
+        accessibilityLabel={
+          played
+            ? `${match.homeTeam.name} ${match.homeScore}, ${match.awayTeam.name} ${match.awayScore}`
+            : `${match.homeTeam.name} versus ${match.awayTeam.name}, record result`
+        }
       >
-        <ThemedText type="small" style={styles.teamName} numberOfLines={1}>
+        <ThemedText type="smallBold" style={styles.teamName} numberOfLines={2}>
           {match.homeTeam.name}
         </ThemedText>
-        <ThemedText type="smallBold" themeColor={played ? 'text' : 'textSecondary'}>
-          {played ? `${match.homeScore} - ${match.awayScore}` : 'vs'}
-        </ThemedText>
-        <ThemedText type="small" style={[styles.teamName, styles.awayName]} numberOfLines={1}>
+        {played ? (
+          <ThemedText type="heading" style={styles.score}>
+            {match.homeScore} – {match.awayScore}
+          </ThemedText>
+        ) : (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.score}>
+            vs
+          </ThemedText>
+        )}
+        <ThemedText
+          type="smallBold"
+          style={[styles.teamName, styles.awayName]}
+          numberOfLines={2}
+        >
           {match.awayTeam.name}
         </ThemedText>
-      </Pressable>
+      </ListRow>
     </Link>
   );
 }
@@ -87,8 +97,8 @@ export function FixtureSection({
   return (
     <View style={styles.section}>
       {rounds.map((round) => (
-        <Fragment key={round}>
-          <ThemedText type="smallBold" themeColor="textSecondary">
+        <View key={round}>
+          <ThemedText type="smallBold" themeColor="textSecondary" style={styles.round}>
             Round {round}
           </ThemedText>
           {data
@@ -96,7 +106,7 @@ export function FixtureSection({
             .map((match) => (
               <MatchRow key={match.id} match={match} tournamentId={tournamentId} />
             ))}
-        </Fragment>
+        </View>
       ))}
     </View>
   );
@@ -104,18 +114,18 @@ export function FixtureSection({
 
 const styles = StyleSheet.create({
   section: {
-    gap: Spacing.two,
+    gap: Spacing.four,
+  },
+  round: {
+    paddingBottom: Spacing.one,
   },
   emptyWrapper: {
     gap: Spacing.three,
   },
-  matchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 12,
-    padding: Spacing.three,
-    gap: Spacing.two,
+  score: {
+    minWidth: 56,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   teamName: {
     flex: 1,

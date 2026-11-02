@@ -1,13 +1,12 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { ListRow } from '@/components/ui/list-row';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useTopScorers } from '@/lib/queries';
 
 export function ScorersSection({ tournamentId }: { tournamentId: string }) {
-  const theme = useTheme();
   const { data, isPending, isError, error } = useTopScorers(tournamentId);
 
   if (isPending) return <LoadingView />;
@@ -19,13 +18,14 @@ export function ScorersSection({ tournamentId }: { tournamentId: string }) {
   }
 
   return (
-    <View style={styles.section}>
+    <View>
       {data.map((scorer, index) => (
-        <View
-          key={scorer.playerId}
-          style={[styles.row, { backgroundColor: theme.backgroundElement }]}
-        >
-          <ThemedText type="smallBold" themeColor="textSecondary" style={styles.position}>
+        <ListRow key={scorer.playerId}>
+          <ThemedText
+            type="stat"
+            themeColor={index === 0 ? 'accentText' : 'textSecondary'}
+            style={styles.position}
+          >
             {index + 1}
           </ThemedText>
           <View style={styles.names}>
@@ -34,35 +34,27 @@ export function ScorersSection({ tournamentId }: { tournamentId: string }) {
               {scorer.teamName}
             </ThemedText>
           </View>
-          <ThemedText type="subtitle" themeColor="accentText" style={styles.goals}>
+          <ThemedText type="subtitle" style={styles.goals}>
             {scorer.goals}
           </ThemedText>
-        </View>
+        </ListRow>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  section: {
-    gap: Spacing.two,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    padding: Spacing.three,
-    gap: Spacing.three,
-  },
   position: {
-    width: 24,
+    width: 22,
     textAlign: 'center',
   },
   names: {
     flex: 1,
+    gap: Spacing.half,
   },
   goals: {
-    fontSize: 24,
-    lineHeight: 28,
+    minWidth: 36,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
   },
 });

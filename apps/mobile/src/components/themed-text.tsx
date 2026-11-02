@@ -10,6 +10,7 @@ export type ThemedTextProps = TextProps & {
     | 'small'
     | 'smallBold'
     | 'subtitle'
+    | 'heading'
     | 'score'
     | 'stat'
     | 'link'
@@ -50,6 +51,12 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.display,
     fontSize: 28,
     lineHeight: 32,
+  },
+  /** Names in lists: tournaments, teams */
+  heading: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 22,
+    lineHeight: 26,
   },
   /** Match scores: the loudest thing on screen */
   score: {

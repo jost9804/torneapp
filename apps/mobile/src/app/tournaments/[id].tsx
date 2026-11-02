@@ -1,5 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -12,13 +13,21 @@ import { TeamsSection } from '@/components/tournament/teams-section';
 import { Segmented } from '@/components/ui/segmented';
 import { ErrorView, LoadingView } from '@/components/ui/status-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { api } from '@/lib/api';
+import { useTheme } from '@/hooks/use-theme';
+import { api, type TournamentFormat } from '@/lib/api';
+import { plural } from '@/lib/format';
 import { useTournament } from '@/lib/queries';
 
 type Section = 'teams' | 'fixture' | 'standings' | 'scorers';
 
+const FORMAT_LABEL: Record<TournamentFormat, string> = {
+  ROUND_ROBIN: 'Single round robin',
+  ROUND_ROBIN_HOME_AWAY: 'Home and away',
+};
+
 export default function TournamentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const theme = useTheme();
   const { data, isPending, isError, error } = useTournament(id);
   const [section, setSection] = useState<Section>('teams');
 
@@ -29,23 +38,42 @@ export default function TournamentDetailScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: data.name }} />
+      <Stack.Screen
+        options={{
+          title: data.name,
+          headerTitle: '',
+          headerStyle: { backgroundColor: theme.brand },
+          headerTintColor: theme.onBrand,
+        }}
+      />
+      <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Football 11 · {data._count?.teams ?? 0} teams
+        {/* The turf band continues the header so the tournament reads as one block */}
+        <View style={[styles.band, { backgroundColor: theme.brand }]}>
+          <View style={styles.bandContent}>
+            <ThemedText type="title" themeColor="onBrand">
+              {data.name}
             </ThemedText>
-            {data.rulesPdfPath ? (
-              <ThemedText
-                type="smallBold"
-                themeColor="accentText"
-                onPress={() => WebBrowser.openBrowserAsync(api.tournaments.rulesUrl(id))}
-              >
-                View rules (PDF)
+            <View style={styles.meta}>
+              <ThemedText type="small" themeColor="onBrand">
+                Football 11 · {plural(data._count?.teams ?? 0, 'team', 'teams')} ·{' '}
+                {FORMAT_LABEL[data.format]}
               </ThemedText>
-            ) : null}
+              {data.rulesPdfPath ? (
+                <ThemedText
+                  type="smallBold"
+                  themeColor="onBrand"
+                  style={styles.rulesLink}
+                  accessibilityRole="link"
+                  onPress={() => WebBrowser.openBrowserAsync(api.tournaments.rulesUrl(id))}
+                >
+                  Tournament rules (PDF)
+                </ThemedText>
+              ) : null}
+            </View>
           </View>
+        </View>
+        <View style={styles.content}>
           <Segmented
             value={section}
             onChange={setSection}
@@ -84,10 +112,21 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     gap: Spacing.three,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  band: {
+    paddingBottom: Spacing.four,
+  },
+  bandContent: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.three,
     gap: Spacing.two,
+  },
+  meta: {
+    gap: Spacing.one,
+  },
+  rulesLink: {
+    textDecorationLine: 'underline',
+    alignSelf: 'flex-start',
   },
 });

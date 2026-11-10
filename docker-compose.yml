@@ -32,24 +32,35 @@ services:
       GOOGLE_CLIENT_IDS: ${GOOGLE_CLIENT_IDS:-}
       FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      # Comma-separated browser origins allowed to call the API; empty allows any
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     ports:
       - "3000:3000"
     volumes:
       - uploads:/app/uploads
 
-  # Web build + reverse proxy for the public demo. Enable with COMPOSE_PROFILES=web.
+  # Web build + reverse proxy for the public site. Enable with COMPOSE_PROFILES=web.
   web:
     build: ./apps/mobile
     restart: unless-stopped
     profiles: ["web"]
     depends_on:
       - api
-    environment:
-      WEB_AUTH_USER: ${WEB_AUTH_USER}
-      WEB_AUTH_HASH: ${WEB_AUTH_HASH}
-    # Localhost only: Tailscale Funnel publishes it over HTTPS.
+    # Localhost only: the tunnel reaches it over the Compose network.
     ports:
       - "127.0.0.1:8080:80"
+
+  # Publishes web and api over HTTPS through Cloudflare, with no open router ports.
+  # Enable with COMPOSE_PROFILES=web,tunnel.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    depends_on:
+      - api
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
 
 volumes:
   pgdata:

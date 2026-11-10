@@ -5,11 +5,6 @@
 :80 {
 	encode zstd gzip
 
-	# The API has no accounts yet, so the whole site sits behind one shared login.
-	basic_auth {
-		{$WEB_AUTH_USER} {$WEB_AUTH_HASH}
-	}
-
 	handle_path /api/* {
 		reverse_proxy api:3000
 	}

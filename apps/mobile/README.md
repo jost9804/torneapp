@@ -16,6 +16,14 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+### Testing on a phone from anywhere
+
+```bash
+npm run start:remote
+```
+
+Serves Metro through an Expo tunnel (works outside the local network) and points the app at the public API (`https://api.torneapp.app`). Scan the QR code with Expo Go. The Mac must stay on with this command running. Google and Facebook sign-in need a development build and do not work in Expo Go.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

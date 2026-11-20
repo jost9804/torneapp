@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessService } from '../access/access.service';
 import type { AuthUser } from '../auth/auth.guard';
+import { deleteImage, saveImage } from '../images/images';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
@@ -61,7 +62,21 @@ export class TournamentsService {
   async remove(user: AuthUser | undefined, id: string) {
     await this.findOne(id);
     await this.access.requireAdmin(user, id);
-    await this.prisma.tournament.delete({ where: { id } });
+    const deleted = await this.prisma.tournament.delete({
+      where: { id },
+      include: { teams: { select: { crestUrl: true } } },
+    });
+    await Promise.all([deleted.imageUrl, ...deleted.teams.map((t) => t.crestUrl)].map(deleteImage));
+  }
+
+  /** Replaces the tournament's picture; only its admins may. */
+  async setImage(user: AuthUser | undefined, id: string, file: Express.Multer.File | undefined) {
+    const previous = await this.findOne(id);
+    await this.access.requireAdmin(user, id);
+    const imageUrl = await saveImage(file, id);
+    await this.prisma.tournament.update({ where: { id }, data: { imageUrl } });
+    await deleteImage(previous.imageUrl);
+    return this.findOne(id, user);
   }
 
   async setRulesPdf(id: string, filePath: string) {

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { Crest } from '@/components/ui/crest';
 import { ListRow } from '@/components/ui/list-row';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { Spacing } from '@/constants/theme';
@@ -21,6 +22,7 @@ function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string 
             : `${match.homeTeam.name} contra ${match.awayTeam.name}, ver partido`
         }
       >
+        <Crest url={match.homeTeam.crestUrl} name={match.homeTeam.name} size={28} />
         <ThemedText type="smallBold" style={styles.teamName} numberOfLines={2}>
           {match.homeTeam.name}
         </ThemedText>
@@ -36,6 +38,7 @@ function MatchRow({ match, tournamentId }: { match: Match; tournamentId: string 
         <ThemedText type="smallBold" style={[styles.teamName, styles.awayName]} numberOfLines={2}>
           {match.awayTeam.name}
         </ThemedText>
+        <Crest url={match.awayTeam.crestUrl} name={match.awayTeam.name} size={28} />
       </ListRow>
     </Link>
   );

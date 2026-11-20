@@ -7,6 +7,7 @@ import {
   TournamentFormat,
   type TournamentListView,
 } from './api';
+import { imageForm, type PickedImage } from './images';
 
 export const keys = {
   tournaments: ['tournaments'] as const,
@@ -92,10 +93,38 @@ export function useUploadRules(tournamentId: string) {
 export function useCreateTeam(tournamentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string }) => api.teams.create(tournamentId, data),
-    onSuccess: () => {
+    // The crest goes up right after the team exists; a failed upload still leaves the team
+    mutationFn: async ({ name, crest }: { name: string; crest: PickedImage }) => {
+      const team = await api.teams.create(tournamentId, { name });
+      return api.teams.uploadCrest(team.id, await imageForm(crest));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: keys.teams(tournamentId) });
       queryClient.invalidateQueries({ queryKey: keys.tournament(tournamentId) });
+    },
+  });
+}
+
+export function useUploadCrest(tournamentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ teamId, crest }: { teamId: string; crest: PickedImage }) =>
+      api.teams.uploadCrest(teamId, await imageForm(crest)),
+    onSuccess: () => {
+      // Crests also show in the fixture and the standings
+      queryClient.invalidateQueries({ queryKey: keys.tournament(tournamentId) });
+    },
+  });
+}
+
+export function useUploadTournamentImage(tournamentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (image: PickedImage) =>
+      api.tournaments.uploadImage(tournamentId, await imageForm(image)),
+    onSuccess: (tournament) => {
+      queryClient.setQueryData(keys.tournament(tournamentId), tournament);
+      queryClient.invalidateQueries({ queryKey: keys.lists });
     },
   });
 }

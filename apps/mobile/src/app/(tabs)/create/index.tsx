@@ -6,18 +6,22 @@ import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
+import { ImageField } from '@/components/ui/image-field';
 import { Segmented } from '@/components/ui/segmented';
 import { EmptyView, LoadingView } from '@/components/ui/status-view';
 import { TextField } from '@/components/ui/text-field';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { api, TournamentFormat } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { imageForm, type PickedImage } from '@/lib/images';
 import { useCreateTournament } from '@/lib/queries';
 
 export default function CreateTournamentScreen() {
   const auth = useAuth();
   const [name, setName] = useState('');
   const [format, setFormat] = useState<TournamentFormat>('ROUND_ROBIN');
+  const [image, setImage] = useState<PickedImage | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [rulesFile, setRulesFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [error, setError] = useState<string | null>(null);
   const createTournament = useCreateTournament();
@@ -31,12 +35,15 @@ export default function CreateTournamentScreen() {
   };
 
   const submit = async () => {
+    if (!image) return;
     setError(null);
+    setUploading(true);
     try {
       const tournament = await createTournament.mutateAsync({
         name: name.trim(),
         format,
       });
+      await api.tournaments.uploadImage(tournament.id, await imageForm(image));
       if (rulesFile) {
         const form = new FormData();
         if (Platform.OS === 'web' && rulesFile.file) {
@@ -54,9 +61,12 @@ export default function CreateTournamentScreen() {
       setName('');
       setFormat('ROUND_ROBIN');
       setRulesFile(null);
+      setImage(null);
       router.push({ pathname: '/tournaments/[id]', params: { id: tournament.id } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo crear el torneo');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -87,6 +97,13 @@ export default function CreateTournamentScreen() {
           onChangeText={setName}
           maxLength={80}
         />
+        <ImageField
+          label="Imagen del torneo"
+          hint="Obligatoria. El logo o una foto que lo identifique; se recorta en cuadrado."
+          name={name}
+          value={image}
+          onChange={setImage}
+        />
         <View style={styles.field}>
           <ThemedText type="smallBold" themeColor="textSecondary">
             Formato
@@ -114,8 +131,8 @@ export default function CreateTournamentScreen() {
         <Button
           title="Crear torneo"
           onPress={submit}
-          disabled={name.trim().length === 0}
-          loading={createTournament.isPending}
+          disabled={name.trim().length === 0 || !image}
+          loading={uploading}
         />
       </View>
     </ScrollView>

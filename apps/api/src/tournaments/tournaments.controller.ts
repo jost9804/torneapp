@@ -22,13 +22,11 @@ import { existsSync, mkdirSync } from 'fs';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { AccessService } from '../access/access.service';
+import { imageUploadOptions, UPLOADS_DIR } from '../images/images';
 import { Authenticated, CurrentUser, type AuthUser } from '../auth/auth.guard';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 import { TournamentsService } from './tournaments.service';
-
-export const UPLOADS_DIR =
-  process.env.UPLOADS_DIR ?? join(process.cwd(), 'uploads');
 
 const MAX_RULES_PDF_BYTES = 10 * 1024 * 1024;
 
@@ -137,6 +135,17 @@ export class TournamentsController {
     const filename = `${id}-rules.pdf`;
     await writeFile(join(UPLOADS_DIR, filename), file.buffer);
     return this.tournaments.setRulesPdf(id, filename);
+  }
+
+  @Put(':id/image')
+  @Authenticated()
+  @UseInterceptors(FileInterceptor('file', imageUploadOptions))
+  uploadImage(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.tournaments.setImage(user, id, file);
   }
 
   @Get(':id/rules')

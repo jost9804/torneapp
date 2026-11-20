@@ -1,8 +1,9 @@
 import { Link } from 'expo-router';
 import type { ReactElement } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { SectionList, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Crest } from '@/components/ui/crest';
 import { ListRow } from '@/components/ui/list-row';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -20,6 +21,7 @@ function TournamentRow({ tournament }: { tournament: Tournament }) {
   return (
     <Link href={{ pathname: '/tournaments/[id]', params: { id: tournament.id } }} asChild>
       <ListRow>
+        <Crest url={tournament.imageUrl} name={tournament.name} size={48} />
         <View style={styles.rowText}>
           <ThemedText type="heading" numberOfLines={1}>
             {tournament.name}
@@ -40,28 +42,47 @@ function TournamentRow({ tournament }: { tournament: Tournament }) {
   );
 }
 
+export type TournamentSection = { title?: string; data: Tournament[] };
+
 /** The list is the screen's first child so the tab bar and header inset it on iOS. */
 export function TournamentList({
   tournaments,
+  sections,
   onRefresh,
   refreshing,
   header,
   empty,
 }: {
-  tournaments: Tournament[];
   onRefresh: () => void;
   refreshing: boolean;
   header?: ReactElement;
   empty: ReactElement;
-}) {
+} & (
+  | { tournaments: Tournament[]; sections?: never }
+  | { sections: TournamentSection[]; tournaments?: never }
+)) {
   const theme = useTheme();
+  const visible = (sections ?? [{ data: tournaments ?? [] }]).filter((s) => s.data.length > 0);
   return (
-    <FlatList
+    <SectionList
       style={{ backgroundColor: theme.background }}
       contentInsetAdjustmentBehavior="automatic"
-      data={tournaments}
+      sections={visible}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => <TournamentRow tournament={item} />}
+      renderSectionHeader={({ section }) =>
+        section.title ? (
+          <ThemedText
+            type="smallBold"
+            themeColor="textSecondary"
+            accessibilityRole="header"
+            style={styles.sectionTitle}
+          >
+            {section.title}
+          </ThemedText>
+        ) : null
+      }
+      stickySectionHeadersEnabled={false}
       contentContainerStyle={styles.list}
       onRefresh={onRefresh}
       refreshing={refreshing}
@@ -78,6 +99,12 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     alignSelf: 'center',
     padding: Spacing.three,
+  },
+  sectionTitle: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.one,
   },
   rowText: {
     flex: 1,

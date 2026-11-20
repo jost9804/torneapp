@@ -10,6 +10,7 @@ import { FixtureSection } from '@/components/tournament/fixture-section';
 import { ScorersSection } from '@/components/tournament/scorers-section';
 import { StandingsSection } from '@/components/tournament/standings-section';
 import { TeamsSection } from '@/components/tournament/teams-section';
+import { Crest } from '@/components/ui/crest';
 import { Segmented } from '@/components/ui/segmented';
 import { ErrorView, LoadingView } from '@/components/ui/status-view';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -17,7 +18,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { api, type TournamentFormat } from '@/lib/api';
 import { tournamentAccess, useRequireAuth } from '@/lib/auth';
 import { plural, ROLE_LABEL } from '@/lib/format';
-import { useTournament, useTournamentReaction } from '@/lib/queries';
+import { pickSquareImage } from '@/lib/images';
+import { useTournament, useTournamentReaction, useUploadTournamentImage } from '@/lib/queries';
+import { useRecordView } from '@/lib/recently-viewed';
 
 type Section = 'teams' | 'fixture' | 'standings' | 'scorers';
 
@@ -63,6 +66,10 @@ export default function TournamentDetailScreen() {
   const [section, setSection] = useState<Section>('teams');
   const reaction = useTournamentReaction(id);
   const requireAuth = useRequireAuth();
+  const uploadImage = useUploadTournamentImage(id);
+  const [imageError, setImageError] = useState<string | null>(null);
+  // Only tournaments that actually loaded count as viewed
+  useRecordView(data?.id);
 
   if (isPending) return <LoadingView />;
   if (isError) return <ErrorView message={error.message} />;
@@ -96,9 +103,33 @@ export default function TournamentDetailScreen() {
         {/* The turf band continues the header so the tournament reads as one block */}
         <View style={[styles.band, { backgroundColor: theme.brand }]}>
           <View style={styles.bandContent}>
-            <ThemedText type="title" themeColor="onBrand">
-              {data.name}
-            </ThemedText>
+            <View style={styles.titleRow}>
+              <Pressable
+                disabled={!access.isAdmin || uploadImage.isPending}
+                accessibilityRole={access.isAdmin ? 'button' : 'image'}
+                accessibilityLabel={access.isAdmin ? 'Cambiar imagen del torneo' : undefined}
+                onPress={async () => {
+                  setImageError(null);
+                  try {
+                    const image = await pickSquareImage();
+                    if (image) await uploadImage.mutateAsync(image);
+                  } catch (e) {
+                    setImageError(e instanceof Error ? e.message : 'No se pudo cambiar la imagen');
+                  }
+                }}
+                style={{ opacity: uploadImage.isPending ? 0.5 : 1 }}
+              >
+                <Crest url={data.imageUrl} name={data.name} size={72} />
+              </Pressable>
+              <ThemedText type="title" themeColor="onBrand" style={styles.title}>
+                {data.name}
+              </ThemedText>
+            </View>
+            {access.isAdmin ? (
+              <ThemedText type="small" themeColor="onBrand">
+                {imageError ?? 'Toca la imagen para cambiarla.'}
+              </ThemedText>
+            ) : null}
             <View style={styles.meta}>
               <ThemedText type="small" themeColor="onBrand">
                 Fútbol 11 · {plural(data._count?.teams ?? 0, 'equipo', 'equipos')} ·{' '}
@@ -208,6 +239,14 @@ const styles = StyleSheet.create({
   },
   meta: {
     gap: Spacing.one,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  title: {
+    flex: 1,
   },
   actions: {
     flexDirection: 'row',

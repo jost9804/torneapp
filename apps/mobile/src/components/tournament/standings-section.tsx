@@ -1,6 +1,7 @@
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Crest } from '@/components/ui/crest';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -74,6 +75,7 @@ export function StandingsSection({ tournamentId }: { tournamentId: string }) {
           >
             {index + 1}
           </ThemedText>
+          <Crest url={row.crestUrl} name={row.teamName} size={22} />
           <ThemedText type="smallBold" style={styles.team} numberOfLines={1}>
             {row.teamName}
           </ThemedText>

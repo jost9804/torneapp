@@ -56,6 +56,8 @@ export interface Tournament {
   format: TournamentFormat;
   status: TournamentStatus;
   rulesPdfPath: string | null;
+  /** Path under the API, e.g. `/images/…`; resolve with `imageUrl()` */
+  imageUrl: string | null;
   createdAt: string;
   _count?: { teams: number; matches: number; likes: number; follows: number };
   /** null when nobody is signed in */
@@ -207,6 +209,8 @@ export const api = {
         method: 'POST',
         body: form,
       }),
+    uploadImage: (id: string, form: FormData) =>
+      request<Tournament>(`/tournaments/${id}/image`, { method: 'PUT', body: form }),
     rulesUrl: (id: string) => `${API_URL}/tournaments/${id}/rules`,
     setLike: (id: string, liked: boolean) =>
       request<Tournament>(`/tournaments/${id}/like`, { method: liked ? 'PUT' : 'DELETE' }),
@@ -240,6 +244,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+    uploadCrest: (id: string, form: FormData) =>
+      request<Team>(`/teams/${id}/crest`, { method: 'PUT', body: form }),
   },
   players: {
     create: (teamId: string, data: { name: string; number?: number; position?: string }) =>

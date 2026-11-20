@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { AccessService } from '../access/access.service';
 import type { AuthUser } from '../auth/auth.guard';
+import { deleteImage, saveImage } from '../images/images';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 
@@ -57,5 +58,17 @@ export class TeamsService {
       );
     }
     await this.prisma.team.delete({ where: { id } });
+    await deleteImage(team.crestUrl);
+  }
+
+  /** Replaces the team's crest; only the tournament's admins may. */
+  async setCrest(user: AuthUser | undefined, id: string, file: Express.Multer.File | undefined) {
+    const team = await this.prisma.team.findUnique({ where: { id } });
+    if (!team) throw new NotFoundException('Team not found');
+    await this.access.requireAdmin(user, team.tournamentId);
+    const crestUrl = await saveImage(file, id);
+    const updated = await this.prisma.team.update({ where: { id }, data: { crestUrl } });
+    await deleteImage(team.crestUrl);
+    return updated;
   }
 }

@@ -3,6 +3,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { Crest } from '@/components/ui/crest';
+import { ImageField } from '@/components/ui/image-field';
 import { ListRow } from '@/components/ui/list-row';
 import { EmptyView, ErrorView, LoadingView } from '@/components/ui/status-view';
 import { TextField } from '@/components/ui/text-field';
@@ -10,6 +12,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Player, PlayerRequest, Team } from '@/lib/api';
 import { plural } from '@/lib/format';
+import { type PickedImage, pickSquareImage } from '@/lib/images';
 import {
   useCreatePlayer,
   useCreateTeam,
@@ -17,6 +20,7 @@ import {
   useReviewPlayerRequest,
   useTeams,
   useUpdatePlayer,
+  useUploadCrest,
 } from '@/lib/queries';
 
 const parseNumber = (value: string) => {
@@ -201,6 +205,38 @@ function PendingPlayers({
   );
 }
 
+/** Admins can replace a crest at any time, even after the fixture exists. */
+function ChangeCrest({ team, tournamentId }: { team: Team; tournamentId: string }) {
+  const upload = useUploadCrest(tournamentId);
+  const [error, setError] = useState<string | null>(null);
+
+  const change = async () => {
+    setError(null);
+    try {
+      const crest = await pickSquareImage();
+      if (crest) await upload.mutateAsync({ teamId: team.id, crest });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cambiar el escudo');
+    }
+  };
+
+  return (
+    <View style={styles.changeCrest}>
+      <Button
+        title={team.crestUrl ? 'Cambiar escudo' : 'Subir escudo'}
+        variant="secondary"
+        loading={upload.isPending}
+        onPress={change}
+      />
+      {error ? (
+        <ThemedText type="small" themeColor="danger">
+          {error}
+        </ThemedText>
+      ) : null}
+    </View>
+  );
+}
+
 function TeamRow({
   team,
   tournamentId,
@@ -228,6 +264,7 @@ function TeamRow({
         accessibilityRole="button"
         accessibilityState={{ expanded }}
       >
+        <Crest url={team.crestUrl} name={team.name} size={36} />
         <ThemedText type="heading" style={styles.teamName} numberOfLines={1}>
           {team.name}
         </ThemedText>
@@ -237,6 +274,7 @@ function TeamRow({
       </ListRow>
       {expanded ? (
         <View style={[styles.players, { borderColor: theme.border }]}>
+          {isAdmin ? <ChangeCrest team={team} tournamentId={tournamentId} /> : null}
           {team.players.map((player) => (
             <View key={player.id} style={styles.playerRow}>
               <ThemedText type="stat" themeColor="textSecondary" style={styles.playerNumber}>
@@ -285,6 +323,7 @@ export function TeamsSection({
   const { data, isPending, isError, error } = useTeams(tournamentId);
   const requests = usePlayerRequests(tournamentId, isAdmin || coachTeamIds.length > 0);
   const [teamName, setTeamName] = useState('');
+  const [crest, setCrest] = useState<PickedImage | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const createTeam = useCreateTeam(tournamentId);
 
@@ -292,10 +331,12 @@ export function TeamsSection({
   if (isError) return <ErrorView message={error.message} />;
 
   const addTeam = async () => {
+    if (!crest) return;
     setFormError(null);
     try {
-      await createTeam.mutateAsync({ name: teamName.trim() });
+      await createTeam.mutateAsync({ name: teamName.trim(), crest });
       setTeamName('');
+      setCrest(null);
     } catch (e) {
       setFormError(e instanceof Error ? e.message : 'No se pudo agregar el equipo');
     }
@@ -306,21 +347,31 @@ export function TeamsSection({
   return (
     <View style={styles.section}>
       {isAdmin && !fixtureGenerated ? (
-        <View style={styles.addTeamRow}>
-          <View style={styles.addTeamField}>
-            <TextField
-              placeholder="Nombre del equipo"
-              value={teamName}
-              onChangeText={setTeamName}
-              maxLength={60}
+        <View style={styles.addTeam}>
+          <ImageField
+            label="Escudo"
+            hint="Obligatorio para agregar el equipo."
+            name={teamName}
+            value={crest}
+            onChange={setCrest}
+            size={56}
+          />
+          <View style={styles.addTeamRow}>
+            <View style={styles.addTeamField}>
+              <TextField
+                placeholder="Nombre del equipo"
+                value={teamName}
+                onChangeText={setTeamName}
+                maxLength={60}
+              />
+            </View>
+            <Button
+              title="Agregar equipo"
+              disabled={teamName.trim().length === 0 || !crest}
+              loading={createTeam.isPending}
+              onPress={addTeam}
             />
           </View>
-          <Button
-            title="Agregar equipo"
-            disabled={teamName.trim().length === 0}
-            loading={createTeam.isPending}
-            onPress={addTeam}
-          />
         </View>
       ) : null}
       {formError ? <ThemedText themeColor="danger">{formError}</ThemedText> : null}
@@ -361,6 +412,13 @@ export function TeamsSection({
 const styles = StyleSheet.create({
   section: {
     gap: Spacing.two,
+  },
+  addTeam: {
+    gap: Spacing.two,
+  },
+  changeCrest: {
+    gap: Spacing.one,
+    alignItems: 'flex-start',
   },
   addTeamRow: {
     flexDirection: 'row',

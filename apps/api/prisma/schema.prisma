@@ -144,6 +144,8 @@ model Tournament {
   format       TournamentFormat   @default(ROUND_ROBIN)
   status       TournamentStatus   @default(DRAFT)
   rulesPdfPath String?
+  /// Picture chosen by the creator, served from /images
+  imageUrl     String?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   teams        Team[]

@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { api, type Session } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -15,9 +16,11 @@ const MIN_PASSWORD = 8;
 
 export default function RegisterScreen() {
   const { signIn } = useAuth();
+  const theme = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +34,10 @@ export default function RegisterScreen() {
   );
 
   const submit = async () => {
+    if (password !== confirmation) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -43,6 +50,9 @@ export default function RegisterScreen() {
   };
 
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD;
+  const matches = password === confirmation;
+  // Only complain once the second entry is at least as long as the first
+  const mismatch = confirmation.length > 0 && !matches && confirmation.length >= password.length;
 
   return (
     <ThemedView style={styles.container}>
@@ -90,6 +100,22 @@ export default function RegisterScreen() {
                 Mínimo {MIN_PASSWORD} caracteres.
               </ThemedText>
             </View>
+            <View style={styles.field}>
+              <TextField
+                label="Confirmar contraseña"
+                value={confirmation}
+                onChangeText={setConfirmation}
+                secureTextEntry
+                autoComplete="new-password"
+                textContentType="newPassword"
+                style={mismatch ? { borderColor: theme.danger } : undefined}
+              />
+              {mismatch ? (
+                <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite">
+                  Las contraseñas no coinciden.
+                </ThemedText>
+              ) : null}
+            </View>
             {error ? <ThemedText themeColor="danger">{error}</ThemedText> : null}
             <Button
               title="Crear cuenta"
@@ -97,7 +123,8 @@ export default function RegisterScreen() {
               disabled={
                 name.trim().length === 0 ||
                 email.trim().length === 0 ||
-                password.length < MIN_PASSWORD
+                password.length < MIN_PASSWORD ||
+                !matches
               }
               onPress={submit}
             />

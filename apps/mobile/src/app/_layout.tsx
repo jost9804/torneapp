@@ -85,6 +85,10 @@ export default function RootLayout() {
               name="clubs/new"
               options={{ title: 'Nuevo equipo', presentation: 'modal' }}
             />
+            <Stack.Screen
+              name="verify-email"
+              options={{ title: 'Confirmar correo', presentation: 'modal' }}
+            />
             <Stack.Screen name="login" options={{ title: 'Entrar', presentation: 'modal' }} />
             <Stack.Screen
               name="register"

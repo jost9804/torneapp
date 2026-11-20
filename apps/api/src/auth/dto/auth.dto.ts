@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsString,
   MaxLength,
+  Matches,
   MinLength,
 } from 'class-validator';
 
@@ -46,4 +47,10 @@ export class FacebookLoginDto {
   @IsString()
   @IsNotEmpty()
   accessToken: string;
+}
+
+export class VerifyEmailDto {
+  @IsString()
+  @Matches(/^\s*\d{6}\s*$/, { message: 'El código tiene 6 dígitos' })
+  code: string;
 }

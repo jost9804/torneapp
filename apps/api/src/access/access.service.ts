@@ -60,6 +60,18 @@ export class AccessService {
     return team.tournamentId;
   }
 
+  /** Creating and joining need a confirmed email; browsing, liking and following don't. */
+  async requireVerified(user: AuthUser | undefined) {
+    const { id } = this.signedIn(user);
+    const account = await this.prisma.user.findUnique({
+      where: { id },
+      select: { emailVerifiedAt: true },
+    });
+    if (!account?.emailVerifiedAt) {
+      throw new ForbiddenException('Confirma tu correo para hacer esto. Revisa tu bandeja de entrada.');
+    }
+  }
+
   /** Roles the user holds in a club (owner, admin, coach, spokesperson, captain). */
   async clubRoles(userId: string, clubId: string): Promise<ClubRole[]> {
     const rows = await this.prisma.clubMember.findMany({

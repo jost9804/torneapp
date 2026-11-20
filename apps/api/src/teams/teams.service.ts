@@ -26,6 +26,7 @@ export class TeamsService {
     clubId: string,
   ) {
     const { id: userId } = this.access.signedIn(user);
+    await this.access.requireVerified(user);
     await this.openForEntries(tournamentId);
     const club = await this.prisma.club.findUnique({ where: { id: clubId } });
     if (!club) throw new NotFoundException('Team not found');

@@ -14,6 +14,8 @@ export interface User {
   email: string;
   name: string;
   avatarUrl: string | null;
+  /** null until the emailed code is entered; creating and joining need it */
+  emailVerifiedAt: string | null;
 }
 
 export interface Session {
@@ -253,6 +255,9 @@ export const api = {
     facebook: (accessToken: string) =>
       request<Session>('/auth/facebook', json('POST', { accessToken })),
     me: () => request<User & { memberships: ViewerMembership[] }>('/auth/me'),
+    sendCode: () =>
+      request<{ sent: boolean; alreadyVerified: boolean }>('/auth/email/send', json('POST')),
+    verifyEmail: (code: string) => request<User>('/auth/email/verify', json('POST', { code })),
   },
   tournaments: {
     list: (view: TournamentListView = 'recent') =>

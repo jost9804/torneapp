@@ -20,8 +20,9 @@ export class TournamentsService {
   ) {}
 
   /** Whoever creates a tournament becomes its first admin. */
-  create(user: AuthUser | undefined, dto: CreateTournamentDto) {
+  async create(user: AuthUser | undefined, dto: CreateTournamentDto) {
     const { id: userId } = this.access.signedIn(user);
+    await this.access.requireVerified(user);
     return this.prisma.tournament.create({
       data: {
         ...dto,

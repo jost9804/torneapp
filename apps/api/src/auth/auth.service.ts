@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Logger,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -9,6 +10,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailVerificationService } from './email-verification.service';
 import type { JwtPayload } from './auth.guard';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { hashPassword, verifyPassword } from './password';
@@ -18,6 +20,7 @@ const PUBLIC_USER = {
   email: true,
   name: true,
   avatarUrl: true,
+  emailVerifiedAt: true,
   createdAt: true,
 } as const;
 
@@ -32,10 +35,12 @@ type SocialProfile = {
 @Injectable()
 export class AuthService {
   private readonly google = new OAuth2Client();
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly verification: EmailVerificationService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -52,6 +57,10 @@ export class AuthService {
         passwordHash: await hashPassword(dto.password),
       },
       select: PUBLIC_USER,
+    });
+    // The account exists either way; a failed send can be retried from the app
+    await this.verification.send(user.id).catch((error: unknown) => {
+      this.logger.error(`Verification email for ${user.id} failed: ${String(error)}`);
     });
     return this.session(user);
   }
@@ -71,6 +80,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,
+      emailVerifiedAt: user.emailVerifiedAt,
       createdAt: user.createdAt,
     });
   }
@@ -168,11 +178,16 @@ export class AuthService {
     const user = byEmail
       ? await this.prisma.user.update({
           where: { id: byEmail.id },
-          data: { [provider]: providerId, avatarUrl: byEmail.avatarUrl ?? avatarUrl },
+          data: {
+            [provider]: providerId,
+            avatarUrl: byEmail.avatarUrl ?? avatarUrl,
+            // Google and Facebook already confirmed this address
+            emailVerifiedAt: byEmail.emailVerifiedAt ?? new Date(),
+          },
           select: PUBLIC_USER,
         })
       : await this.prisma.user.create({
-          data: { email, name, avatarUrl, [provider]: providerId },
+          data: { email, name, avatarUrl, [provider]: providerId, emailVerifiedAt: new Date() },
           select: PUBLIC_USER,
         });
     return this.session(user);

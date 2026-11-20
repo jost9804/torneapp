@@ -64,22 +64,39 @@ enum ClubRole {
 }
 
 model User {
-  id             String             @id @default(uuid())
-  email          String             @unique
-  name           String
+  id              String             @id @default(uuid())
+  email           String             @unique
+  name            String
   /// scrypt hash; null for accounts created only through Google or Facebook
-  passwordHash   String?
-  googleId       String?            @unique
-  facebookId     String?            @unique
-  avatarUrl      String?
-  createdAt      DateTime           @default(now())
-  memberships    Membership[]
-  refereeing     Match[]            @relation("MatchReferee")
-  playerRequests PlayerRequest[]
-  likes          TournamentLike[]
-  follows        TournamentFollow[]
-  clubRoles      ClubMember[]
-  entryRequests  EntryRequest[]
+  passwordHash    String?
+  googleId        String?            @unique
+  facebookId      String?            @unique
+  avatarUrl       String?
+  /// Set once the user enters the code sent by email (Google/Facebook count as confirmed)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime           @default(now())
+  emailCode       EmailCode?
+  memberships     Membership[]
+  refereeing      Match[]            @relation("MatchReferee")
+  playerRequests  PlayerRequest[]
+  likes           TournamentLike[]
+  follows         TournamentFollow[]
+  clubRoles       ClubMember[]
+  entryRequests   EntryRequest[]
+}
+
+/// The pending email confirmation code; one per user, replaced on every resend
+model EmailCode {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// HMAC of the 6-digit code, never the code itself
+  codeHash        String
+  expiresAt       DateTime
+  attempts        Int      @default(0)
+  sentAt          DateTime @default(now())
+  /// Sends in the current hour, to cap resends
+  sendsInWindow   Int      @default(1)
+  windowStartedAt DateTime @default(now())
 }
 
 /// A team that exists on its own and plays many tournaments. Each tournament gets a

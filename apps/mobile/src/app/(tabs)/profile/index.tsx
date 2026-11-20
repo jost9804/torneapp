@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Link, router } from 'expo-router';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
+import { VerifyEmailNotice } from '@/components/auth/verify-email-notice';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Crest } from '@/components/ui/crest';
@@ -143,6 +144,7 @@ export default function ProfileScreen() {
             </ThemedText>
           </View>
         </View>
+        <VerifyEmailNotice action="crear torneos y equipos, o inscribirte" />
         <MyClubs />
         <ThemedText type="small" themeColor="textSecondary">
           Tus roles se ven en cada torneo. Para cambiar de rol, pídelo al administrador del torneo.

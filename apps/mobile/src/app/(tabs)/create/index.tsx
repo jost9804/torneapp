@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
+import { VerifyEmailNotice } from '@/components/auth/verify-email-notice';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,7 @@ export default function CreateTournamentScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.content}>
+        <VerifyEmailNotice action="crear torneos" />
         <TextField
           label="Nombre del torneo"
           placeholder="Torneo Municipal 2026"

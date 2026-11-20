@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { VerifyEmailNotice } from '@/components/auth/verify-email-notice';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ export default function JoinTournamentScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.content}>
+          <VerifyEmailNotice action="unirte a un torneo" />
           <ThemedText themeColor="textSecondary">
             Elige cómo participas en {tournament.data.name}. El administrador revisará tu solicitud.
           </ThemedText>

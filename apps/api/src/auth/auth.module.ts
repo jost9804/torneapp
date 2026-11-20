@@ -4,6 +4,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
+import { EmailVerificationService } from './email-verification.service';
+import { MailService } from '../mail/mail.service';
 
 @Global()
 @Module({
@@ -17,6 +19,12 @@ import { AuthService } from './auth.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    AuthService,
+    EmailVerificationService,
+    MailService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
+  exports: [MailService],
 })
 export class AuthModule {}

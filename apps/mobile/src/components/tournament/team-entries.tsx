@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { VerifyEmailNotice } from '@/components/auth/verify-email-notice';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Crest } from '@/components/ui/crest';
@@ -179,6 +180,7 @@ export function TeamEntries({
         </View>
       ) : (
         <View style={styles.group}>
+          {ownClubs.length > 0 ? <VerifyEmailNotice action="inscribir tu equipo" /> : null}
           {ownClubs.map((club) => (
             <ClubLine key={club.id} name={club.name} crestUrl={club.crestUrl} detail="Tu equipo">
               <Button

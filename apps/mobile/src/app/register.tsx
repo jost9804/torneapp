@@ -41,7 +41,9 @@ export default function RegisterScreen() {
     setError(null);
     setBusy(true);
     try {
-      await finish(await api.auth.register({ name: name.trim(), email: email.trim(), password }));
+      // Email sign-ups confirm their address next; Google and Facebook already did
+      await signIn(await api.auth.register({ name: name.trim(), email: email.trim(), password }));
+      router.replace('/verify-email');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo crear la cuenta');
     } finally {

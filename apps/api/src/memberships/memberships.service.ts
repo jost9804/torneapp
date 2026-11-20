@@ -26,6 +26,7 @@ export class MembershipsService {
 
   /** A signed-in user asks for a role; it stays PENDING until an admin approves. */
   async join(user: AuthUser, tournamentId: string, dto: JoinTournamentDto) {
+    await this.access.requireVerified(user);
     await this.assertTournament(tournamentId);
     const teamId = await this.teamFor(tournamentId, dto.role, dto.teamId);
     await this.assertNotMember(user.id, tournamentId, dto.role);

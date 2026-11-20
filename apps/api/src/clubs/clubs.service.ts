@@ -43,6 +43,7 @@ export class ClubsService {
   /** The creator becomes the club's owner. */
   async create(user: AuthUser | undefined, name: string) {
     const { id: userId } = this.access.signedIn(user);
+    await this.access.requireVerified(user);
     const club = await this.prisma.club.create({
       data: { name, members: { create: { userId, role: 'OWNER' } } },
     });

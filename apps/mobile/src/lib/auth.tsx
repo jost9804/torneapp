@@ -21,6 +21,8 @@ type AuthState =
 type AuthContextValue = AuthState & {
   signIn: (session: Session) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Replaces the signed-in user, e.g. after confirming the email */
+  setUser: (user: User) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,7 +69,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await queryClient.invalidateQueries();
   }, [queryClient]);
 
-  const value = useMemo(() => ({ ...state, signIn, signOut }), [state, signIn, signOut]);
+  const setUser = useCallback((user: User) => setState({ status: 'signedIn', user }), []);
+
+  const value = useMemo(
+    () => ({ ...state, signIn, signOut, setUser }),
+    [state, signIn, signOut, setUser],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -5,5 +5,6 @@ import { StandingsService } from './standings.service';
 @Module({
   controllers: [StandingsController],
   providers: [StandingsService],
+  exports: [StandingsService],
 })
 export class StandingsModule {}

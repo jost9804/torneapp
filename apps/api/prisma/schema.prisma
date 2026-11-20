@@ -54,6 +54,15 @@ enum CardType {
   RED
 }
 
+/// Roles inside a team (club). OWNER is the creator; up to 2 ADMINs help manage it.
+enum ClubRole {
+  OWNER
+  ADMIN
+  COACH
+  SPOKESPERSON
+  CAPTAIN
+}
+
 model User {
   id             String             @id @default(uuid())
   email          String             @unique
@@ -69,6 +78,62 @@ model User {
   playerRequests PlayerRequest[]
   likes          TournamentLike[]
   follows        TournamentFollow[]
+  clubRoles      ClubMember[]
+  entryRequests  EntryRequest[]
+}
+
+/// A team that exists on its own and plays many tournaments. Each tournament gets a
+/// `Team` entry (its roster, matches and final position) linked back here.
+model Club {
+  id            String         @id @default(uuid())
+  name          String
+  crestUrl      String?
+  /// The name may change again 6 months after this
+  nameChangedAt DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  members       ClubMember[]
+  players       ClubPlayer[]
+  entries       Team[]
+  entryRequests EntryRequest[]
+
+  @@index([name])
+}
+
+model ClubMember {
+  id        String   @id @default(uuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ClubRole
+  createdAt DateTime @default(now())
+
+  @@unique([clubId, userId, role])
+  @@index([userId])
+}
+
+/// The club's usual squad; it is copied into each tournament roster on entry
+model ClubPlayer {
+  id       String  @id @default(uuid())
+  clubId   String
+  club     Club    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  name     String
+  number   Int?
+  position String?
+}
+
+/// A club admin asks to enter a tournament; the tournament admin approves or rejects it
+model EntryRequest {
+  id            String     @id @default(uuid())
+  clubId        String
+  club          Club       @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  tournamentId  String
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User       @relation(fields: [requestedById], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+
+  @@unique([clubId, tournamentId])
 }
 
 model Membership {
@@ -138,27 +203,34 @@ model TournamentFollow {
 }
 
 model Tournament {
-  id           String             @id @default(uuid())
-  name         String
-  sport        Sport              @default(FOOTBALL_11)
-  format       TournamentFormat   @default(ROUND_ROBIN)
-  status       TournamentStatus   @default(DRAFT)
-  rulesPdfPath String?
+  id            String             @id @default(uuid())
+  name          String
+  sport         Sport              @default(FOOTBALL_11)
+  format        TournamentFormat   @default(ROUND_ROBIN)
+  status        TournamentStatus   @default(DRAFT)
+  rulesPdfPath  String?
   /// Picture chosen by the creator, served from /images
-  imageUrl     String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  teams        Team[]
-  matches      Match[]
-  memberships  Membership[]
-  likes        TournamentLike[]
-  follows      TournamentFollow[]
+  imageUrl      String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  teams         Team[]
+  matches       Match[]
+  memberships   Membership[]
+  likes         TournamentLike[]
+  follows       TournamentFollow[]
+  entryRequests EntryRequest[]
 }
 
+/// A club's entry in one tournament. Name and crest are copied from the club and stop
+/// following it once the tournament finishes, so history shows what was played.
 model Team {
   id             String          @id @default(uuid())
   name           String
   crestUrl       String?
+  clubId         String?
+  club           Club?           @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  /// Saved when the tournament finishes
+  finalPosition  Int?
   tournamentId   String
   tournament     Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   players        Player[]
@@ -168,6 +240,7 @@ model Team {
   playerRequests PlayerRequest[]
 
   @@unique([tournamentId, name])
+  @@index([clubId])
 }
 
 model Player {

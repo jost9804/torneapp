@@ -80,6 +80,11 @@ export default function RootLayout() {
               name="join/[id]"
               options={{ title: 'Unirme al torneo', presentation: 'modal' }}
             />
+            <Stack.Screen name="clubs/[id]" options={{ title: 'Equipo' }} />
+            <Stack.Screen
+              name="clubs/new"
+              options={{ title: 'Nuevo equipo', presentation: 'modal' }}
+            />
             <Stack.Screen name="login" options={{ title: 'Entrar', presentation: 'modal' }} />
             <Stack.Screen
               name="register"

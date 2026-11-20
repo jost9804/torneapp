@@ -64,3 +64,23 @@ export async function deleteImage(publicPath: string | null | undefined) {
   if (!publicPath?.startsWith(`${IMAGES_ROUTE}/`)) return;
   await unlink(join(IMAGES_DIR, basename(publicPath))).catch(() => undefined);
 }
+
+/** Club crests are shared with their tournament entries; only delete files nothing uses. */
+export async function releaseImage(
+  prisma: {
+    club: { count: (args: { where: { crestUrl: string } }) => Promise<number> };
+    team: { count: (args: { where: { crestUrl: string } }) => Promise<number> };
+    tournament: {
+      count: (args: { where: { imageUrl: string } }) => Promise<number>;
+    };
+  },
+  publicPath: string | null | undefined,
+) {
+  if (!publicPath) return;
+  const [clubs, teams, tournaments] = await Promise.all([
+    prisma.club.count({ where: { crestUrl: publicPath } }),
+    prisma.team.count({ where: { crestUrl: publicPath } }),
+    prisma.tournament.count({ where: { imageUrl: publicPath } }),
+  ]);
+  if (clubs + teams + tournaments === 0) await deleteImage(publicPath);
+}

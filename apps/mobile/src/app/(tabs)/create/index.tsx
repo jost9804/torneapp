@@ -134,6 +134,16 @@ export default function CreateTournamentScreen() {
           disabled={name.trim().length === 0 || !image}
           loading={uploading}
         />
+        <View style={styles.field}>
+          <ThemedText type="small" themeColor="textSecondary">
+            ¿Diriges un equipo? Créalo para inscribirlo en torneos y guardar su historial.
+          </ThemedText>
+          <Button
+            title="Crear equipo"
+            variant="secondary"
+            onPress={() => router.push('/clubs/new')}
+          />
+        </View>
       </View>
     </ScrollView>
   );

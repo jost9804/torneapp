@@ -281,6 +281,36 @@ function random(seed: number) {
   };
 }
 
+const POOL_PREFIXES = CLUB_PREFIXES.slice(0, 5);
+const POOL_PLACES = PLACES.slice(0, 8);
+const clubName = (prefix: string, place: string, women: boolean) =>
+  `${prefix} ${place}${women ? ' Femenino' : ''}`;
+
+/** Demo clubs have no members, so nobody can edit them. */
+async function ensureClub(name: string, women: boolean, rand: () => number) {
+  const existing = await prisma.club.findFirst({
+    where: { name, members: { none: {} } },
+    include: { players: true },
+  });
+  if (existing) return existing;
+  const pick = <T>(list: readonly T[]) =>
+    list[Math.floor(rand() * list.length)];
+  const squad = 11 + Math.floor(rand() * 5);
+  return prisma.club.create({
+    data: {
+      name,
+      players: {
+        create: POSITIONS.slice(0, squad).map((position, i) => ({
+          name: `${pick(women ? WOMEN_NAMES : FIRST_NAMES)} ${pick(LAST_NAMES)}`,
+          number: i + 1,
+          position,
+        })),
+      },
+    },
+    include: { players: true },
+  });
+}
+
 const fanEmail = (i: number) => `hincha${i + 1}@${FAN_DOMAIN}`;
 
 async function removeDemo() {
@@ -290,7 +320,13 @@ async function removeDemo() {
   const fans = await prisma.user.deleteMany({
     where: { email: { endsWith: `@${FAN_DOMAIN}` } },
   });
-  console.log(`Removed ${count} demo tournaments and ${fans.count} demo fans.`);
+  // Clubs nobody owns that no longer play anywhere; real clubs always have an owner
+  const clubs = await prisma.club.deleteMany({
+    where: { members: { none: {} }, entries: { none: {} } },
+  });
+  console.log(
+    `Removed ${count} demo tournaments, ${clubs.count} demo clubs and ${fans.count} demo fans.`,
+  );
 }
 
 async function ensureFans() {
@@ -330,6 +366,7 @@ async function createTournament(
     },
   });
 
+  // Clubs come from a small pool so the same club shows up in several tournaments
   const usedNames = new Set<string>();
   const teams: {
     id: string;
@@ -337,20 +374,21 @@ async function createTournament(
   }[] = [];
   for (let t = 0; t < spec.teams; t++) {
     let name: string;
-    do name = `${pick(CLUB_PREFIXES)} ${pick(PLACES)}`;
+    do name = clubName(pick(POOL_PREFIXES), pick(POOL_PLACES), women);
     while (usedNames.has(name));
     usedNames.add(name);
 
-    const squad = 11 + Math.floor(rand() * 5);
+    const club = await ensureClub(name, women, rand);
     teams.push(
       await prisma.team.create({
         data: {
           name,
+          clubId: club.id,
           tournamentId: tournament.id,
           players: {
-            create: POSITIONS.slice(0, squad).map((position, i) => ({
-              name: `${pick(women ? WOMEN_NAMES : FIRST_NAMES)} ${pick(LAST_NAMES)}`,
-              number: i + 1,
+            create: club.players.map(({ name, number, position }) => ({
+              name,
+              number,
               position,
             })),
           },

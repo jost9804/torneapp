@@ -3,6 +3,8 @@ import {
   api,
   type CardType,
   type Role,
+  type AssignableClubRole,
+  type Club,
   type Tournament,
   TournamentFormat,
   type TournamentListView,
@@ -90,31 +92,98 @@ export function useUploadRules(tournamentId: string) {
   });
 }
 
-export function useCreateTeam(tournamentId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    // The crest goes up right after the team exists; a failed upload still leaves the team
-    mutationFn: async ({ name, crest }: { name: string; crest: PickedImage }) => {
-      const team = await api.teams.create(tournamentId, { name });
-      return api.teams.uploadCrest(team.id, await imageForm(crest));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: keys.teams(tournamentId) });
-      queryClient.invalidateQueries({ queryKey: keys.tournament(tournamentId) });
-    },
+// ---- Clubs ("equipos"): teams that live on their own and play many tournaments ----
+
+export const clubKeys = {
+  all: ['clubs'] as const,
+  mine: ['clubs', 'mine'] as const,
+  search: (q: string) => ['clubs', 'search', q] as const,
+  club: (id: string) => ['clubs', id] as const,
+  history: (id: string) => ['clubs', id, 'history'] as const,
+};
+
+export function useMyClubs(enabled: boolean) {
+  return useQuery({ queryKey: clubKeys.mine, queryFn: api.clubs.mine, enabled });
+}
+
+export function useClubSearch(q: string) {
+  const query = q.trim();
+  return useQuery({
+    queryKey: clubKeys.search(query),
+    queryFn: () => api.clubs.search(query),
+    enabled: query.length >= 2,
   });
 }
 
-export function useUploadCrest(tournamentId: string) {
+export function useClub(id: string) {
+  return useQuery({ queryKey: clubKeys.club(id), queryFn: () => api.clubs.get(id) });
+}
+
+export function useClubHistory(id: string) {
+  return useQuery({ queryKey: clubKeys.history(id), queryFn: () => api.clubs.history(id) });
+}
+
+/** Creates the club and uploads its crest right after. */
+export function useCreateClub() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ teamId, crest }: { teamId: string; crest: PickedImage }) =>
-      api.teams.uploadCrest(teamId, await imageForm(crest)),
-    onSuccess: () => {
-      // Crests also show in the fixture and the standings
-      queryClient.invalidateQueries({ queryKey: keys.tournament(tournamentId) });
+    mutationFn: async ({ name, crest }: { name: string; crest: PickedImage }) => {
+      const club = await api.clubs.create(name);
+      return api.clubs.uploadCrest(club.id, await imageForm(crest));
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: clubKeys.mine }),
   });
+}
+
+/** Every change to a club answers with the updated club; tournaments may show it too. */
+export function useClubMutations(id: string) {
+  const queryClient = useQueryClient();
+  const onSuccess = (club: Club) => {
+    queryClient.setQueryData(clubKeys.club(id), club);
+    queryClient.invalidateQueries({ queryKey: clubKeys.mine });
+    queryClient.invalidateQueries({ queryKey: keys.tournaments });
+  };
+  return {
+    rename: useMutation({ mutationFn: (name: string) => api.clubs.rename(id, name), onSuccess }),
+    crest: useMutation({
+      mutationFn: async (crest: PickedImage) => api.clubs.uploadCrest(id, await imageForm(crest)),
+      onSuccess,
+    }),
+    addMember: useMutation({
+      mutationFn: (data: { email: string; role: AssignableClubRole }) =>
+        api.clubs.addMember(id, data),
+      onSuccess,
+    }),
+    removeMember: useMutation({ mutationFn: api.clubs.removeMember, onSuccess }),
+    addPlayer: useMutation({
+      mutationFn: (data: { name: string; number?: number; position?: string }) =>
+        api.clubs.addPlayer(id, data),
+      onSuccess,
+    }),
+    removePlayer: useMutation({ mutationFn: api.clubs.removePlayer, onSuccess }),
+  };
+}
+
+export function useEntryRequests(tournamentId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['tournaments', tournamentId, 'entry-requests'],
+    queryFn: () => api.entryRequests.list(tournamentId),
+    enabled,
+  });
+}
+
+/** Entering, approving and dismissing all change the teams and the pending list. */
+export function useEntryMutations(tournamentId: string) {
+  const queryClient = useQueryClient();
+  const onSettled = () => queryClient.invalidateQueries({ queryKey: keys.tournament(tournamentId) });
+  return {
+    enter: useMutation({
+      mutationFn: (clubId: string) => api.teams.enter(tournamentId, clubId),
+      onSettled,
+    }),
+    approve: useMutation({ mutationFn: api.entryRequests.approve, onSettled }),
+    dismiss: useMutation({ mutationFn: api.entryRequests.dismiss, onSettled }),
+  };
 }
 
 export function useUploadTournamentImage(tournamentId: string) {

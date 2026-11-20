@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { Role } from '../generated/prisma/client';
+import type { ClubRole, Role } from '../generated/prisma/client';
 import type { AuthUser } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -58,6 +58,25 @@ export class AccessService {
     });
     if (!team) throw new NotFoundException('Team not found');
     return team.tournamentId;
+  }
+
+  /** Roles the user holds in a club (owner, admin, coach, spokesperson, captain). */
+  async clubRoles(userId: string, clubId: string): Promise<ClubRole[]> {
+    const rows = await this.prisma.clubMember.findMany({
+      where: { userId, clubId },
+      select: { role: true },
+    });
+    return rows.map((r) => r.role);
+  }
+
+  /** The owner and the admins manage the club. */
+  async requireClubAdmin(user: AuthUser | undefined, clubId: string) {
+    const { id } = this.signedIn(user);
+    const roles = await this.clubRoles(id, clubId);
+    if (!roles.includes('OWNER') && !roles.includes('ADMIN')) {
+      throw new ForbiddenException('Solo los administradores del equipo pueden hacer esto');
+    }
+    return roles;
   }
 
   async tournamentOfPlayer(playerId: string) {

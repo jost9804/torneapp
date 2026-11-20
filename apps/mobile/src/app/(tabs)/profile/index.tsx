@@ -1,13 +1,17 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { Crest } from '@/components/ui/crest';
+import { ListRow } from '@/components/ui/list-row';
 import { FontFamily, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/lib/auth';
 import type { User } from '@/lib/api';
+import { CLUB_ROLE_LABEL, plural } from '@/lib/format';
+import { useMyClubs } from '@/lib/queries';
 
 const AVATAR_SIZE = 88;
 
@@ -34,6 +38,44 @@ function Avatar({ user }: { user: User }) {
       <ThemedText style={[styles.initials, { color: theme.onBrand }]}>
         {initials(user.name)}
       </ThemedText>
+    </View>
+  );
+}
+
+/** Teams the user created or holds a role in. */
+function MyClubs() {
+  const { data, isPending, isError, error } = useMyClubs(true);
+  return (
+    <View style={styles.section}>
+      <ThemedText type="heading">Mis equipos</ThemedText>
+      {isPending ? <ActivityIndicator /> : null}
+      {isError ? (
+        <ThemedText type="small" themeColor="danger">
+          {error.message}
+        </ThemedText>
+      ) : null}
+      {data?.map((club) => (
+        <Link key={club.id} href={{ pathname: '/clubs/[id]', params: { id: club.id } }} asChild>
+          <ListRow>
+            <Crest url={club.crestUrl} name={club.name} size={40} />
+            <View style={styles.flex}>
+              <ThemedText type="smallBold" numberOfLines={1}>
+                {club.name}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {(club.members ?? []).map((m) => CLUB_ROLE_LABEL[m.role]).join(' · ')} ·{' '}
+                {plural(club._count.entries, 'torneo', 'torneos')}
+              </ThemedText>
+            </View>
+          </ListRow>
+        </Link>
+      ))}
+      {data?.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          Crea tu equipo para inscribirlo en torneos y guardar su historial.
+        </ThemedText>
+      ) : null}
+      <Button title="Crear equipo" variant="secondary" onPress={() => router.push('/clubs/new')} />
     </View>
   );
 }
@@ -101,6 +143,7 @@ export default function ProfileScreen() {
             </ThemedText>
           </View>
         </View>
+        <MyClubs />
         <ThemedText type="small" themeColor="textSecondary">
           Tus roles se ven en cada torneo. Para cambiar de rol, pídelo al administrador del torneo.
         </ThemedText>

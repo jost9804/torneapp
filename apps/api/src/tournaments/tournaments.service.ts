@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessService } from '../access/access.service';
 import type { AuthUser } from '../auth/auth.guard';
-import { deleteImage, saveImage } from '../images/images';
+import { releaseImage, saveImage } from '../images/images';
 import { PrismaService } from '../prisma/prisma.service';
+import { StandingsService } from '../standings/standings.service';
 import { CreateTournamentDto } from './dto/create-tournament.dto';
 import { UpdateTournamentDto } from './dto/update-tournament.dto';
 
@@ -15,6 +16,7 @@ export class TournamentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
+    private readonly standings: StandingsService,
   ) {}
 
   /** Whoever creates a tournament becomes its first admin. */
@@ -54,9 +56,30 @@ export class TournamentsService {
   }
 
   async update(user: AuthUser | undefined, id: string, dto: UpdateTournamentDto) {
-    await this.findOne(id);
+    const previous = await this.findOne(id);
     await this.access.requireAdmin(user, id);
-    return this.prisma.tournament.update({ where: { id }, data: dto });
+    const updated = await this.prisma.tournament.update({ where: { id }, data: dto });
+    if (dto.status && dto.status !== previous.status) {
+      await this.recordFinalPositions(id, dto.status === 'FINISHED');
+    }
+    return updated;
+  }
+
+  /**
+   * Finishing a tournament writes each team's place into its club's history;
+   * reopening it clears them so the table is live again.
+   */
+  private async recordFinalPositions(id: string, finished: boolean) {
+    if (!finished) {
+      await this.prisma.team.updateMany({ where: { tournamentId: id }, data: { finalPosition: null } });
+      return;
+    }
+    const table = await this.standings.standings(id);
+    await this.prisma.$transaction(
+      table.map((row, index) =>
+        this.prisma.team.update({ where: { id: row.teamId }, data: { finalPosition: index + 1 } }),
+      ),
+    );
   }
 
   async remove(user: AuthUser | undefined, id: string) {
@@ -66,7 +89,11 @@ export class TournamentsService {
       where: { id },
       include: { teams: { select: { crestUrl: true } } },
     });
-    await Promise.all([deleted.imageUrl, ...deleted.teams.map((t) => t.crestUrl)].map(deleteImage));
+    await Promise.all(
+      [deleted.imageUrl, ...deleted.teams.map((t) => t.crestUrl)].map((path) =>
+        releaseImage(this.prisma, path),
+      ),
+    );
   }
 
   /** Replaces the tournament's picture; only its admins may. */
@@ -75,7 +102,7 @@ export class TournamentsService {
     await this.access.requireAdmin(user, id);
     const imageUrl = await saveImage(file, id);
     await this.prisma.tournament.update({ where: { id }, data: { imageUrl } });
-    await deleteImage(previous.imageUrl);
+    await releaseImage(this.prisma, previous.imageUrl);
     return this.findOne(id, user);
   }
 

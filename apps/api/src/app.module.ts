@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AccessModule } from './access/access.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
+import { ClubsModule } from './clubs/clubs.module';
 import { FixturesModule } from './fixtures/fixtures.module';
 import { MatchesModule } from './matches/matches.module';
 import { MembershipsModule } from './memberships/memberships.module';
@@ -20,6 +21,7 @@ import { TournamentsModule } from './tournaments/tournaments.module';
     AccessModule,
     MembershipsModule,
     TournamentsModule,
+    ClubsModule,
     TeamsModule,
     PlayersModule,
     FixturesModule,

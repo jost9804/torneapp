@@ -6,47 +6,59 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
-  Put,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { imageUploadOptions } from '../images/images';
 import { Authenticated, CurrentUser, type AuthUser } from '../auth/auth.guard';
-import { CreateTeamDto } from './dto/create-team.dto';
+import { EnterTournamentDto } from '../clubs/dto/club.dto';
 import { TeamsService } from './teams.service';
 
 @Controller()
 export class TeamsController {
   constructor(private readonly teams: TeamsService) {}
 
+  /** Tournament admins add the club right away; club admins file a request. */
   @Post('tournaments/:tournamentId/teams')
   @Authenticated()
-  create(
+  enter(
     @CurrentUser() user: AuthUser,
     @Param('tournamentId', ParseUUIDPipe) tournamentId: string,
-    @Body() dto: CreateTeamDto,
+    @Body() dto: EnterTournamentDto,
   ) {
-    return this.teams.create(user, tournamentId, dto);
+    return this.teams.enter(user, tournamentId, dto.clubId);
   }
 
   @Get('tournaments/:tournamentId/teams')
-  findByTournament(
-    @Param('tournamentId', ParseUUIDPipe) tournamentId: string,
-  ) {
+  findByTournament(@Param('tournamentId', ParseUUIDPipe) tournamentId: string) {
     return this.teams.findByTournament(tournamentId);
   }
 
-  @Put('teams/:id/crest')
+  @Get('tournaments/:tournamentId/entry-requests')
   @Authenticated()
-  @UseInterceptors(FileInterceptor('file', imageUploadOptions))
-  uploadCrest(
+  requests(
+    @CurrentUser() user: AuthUser,
+    @Param('tournamentId', ParseUUIDPipe) tournamentId: string,
+  ) {
+    return this.teams.requests(user, tournamentId);
+  }
+
+  @Patch('entry-requests/:id/approve')
+  @Authenticated()
+  approve(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
-    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.teams.setCrest(user, id, file);
+    return this.teams.approve(user, id);
+  }
+
+  @Delete('entry-requests/:id')
+  @Authenticated()
+  @HttpCode(204)
+  dismiss(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.teams.dismiss(user, id);
   }
 
   @Delete('teams/:id')

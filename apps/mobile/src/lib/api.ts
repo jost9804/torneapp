@@ -80,8 +80,73 @@ export interface Team {
   id: string;
   name: string;
   crestUrl: string | null;
+  /** The club this entry belongs to; null for teams from before clubs existed */
+  clubId: string | null;
+  finalPosition: number | null;
   tournamentId: string;
   players: Player[];
+}
+
+export type ClubRole = 'OWNER' | 'ADMIN' | 'COACH' | 'SPOKESPERSON' | 'CAPTAIN';
+export type AssignableClubRole = Exclude<ClubRole, 'OWNER'>;
+
+export interface ClubSummary {
+  id: string;
+  name: string;
+  crestUrl: string | null;
+  _count: { entries: number };
+  /** Only on `mine` lists: the viewer's roles */
+  members?: { role: ClubRole }[];
+}
+
+export interface ClubMember {
+  id: string;
+  role: ClubRole;
+  user: { id: string; name: string; avatarUrl: string | null };
+}
+
+export interface ClubPlayer {
+  id: string;
+  name: string;
+  number: number | null;
+  position: string | null;
+}
+
+export interface Club {
+  id: string;
+  name: string;
+  crestUrl: string | null;
+  nameChangedAt: string;
+  nameChangeAvailableAt: string;
+  createdAt: string;
+  members: ClubMember[];
+  players: ClubPlayer[];
+  viewerRoles: ClubRole[];
+}
+
+export interface ClubHistoryEntry {
+  teamId: string;
+  teamName: string;
+  crestUrl: string | null;
+  /** Final place once finished; the current one while it is played; null in drafts */
+  position: number | null;
+  tournament: {
+    id: string;
+    name: string;
+    status: TournamentStatus;
+    imageUrl: string | null;
+    createdAt: string;
+    teams: number;
+  };
+}
+
+export interface EntryRequest {
+  id: string;
+  clubId: string;
+  tournamentId: string;
+  createdAt: string;
+  club: { id: string; name: string; crestUrl: string | null };
+  requestedBy: { id: string; name: string };
 }
 
 export interface MatchGoal {
@@ -239,13 +304,37 @@ export const api = {
   },
   teams: {
     list: (tournamentId: string) => request<Team[]>(`/tournaments/${tournamentId}/teams`),
-    create: (tournamentId: string, data: { name: string }) =>
-      request<Team>(`/tournaments/${tournamentId}/teams`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+    /** Tournament admins get the team at once; club admins get a pending request */
+    enter: (tournamentId: string, clubId: string) =>
+      request<{ team: Team | null; request: EntryRequest | null }>(
+        `/tournaments/${tournamentId}/teams`,
+        json('POST', { clubId }),
+      ),
+  },
+  entryRequests: {
+    list: (tournamentId: string) =>
+      request<EntryRequest[]>(`/tournaments/${tournamentId}/entry-requests`),
+    approve: (id: string) => request<Team>(`/entry-requests/${id}/approve`, json('PATCH')),
+    dismiss: (id: string) => request<void>(`/entry-requests/${id}`, { method: 'DELETE' }),
+  },
+  clubs: {
+    mine: () => request<ClubSummary[]>('/clubs?mine=true'),
+    search: (q: string) => request<ClubSummary[]>(`/clubs?q=${encodeURIComponent(q)}`),
+    get: (id: string) => request<Club>(`/clubs/${id}`),
+    history: (id: string) => request<ClubHistoryEntry[]>(`/clubs/${id}/history`),
+    create: (name: string) => request<Club>('/clubs', json('POST', { name })),
+    rename: (id: string, name: string) => request<Club>(`/clubs/${id}`, json('PATCH', { name })),
     uploadCrest: (id: string, form: FormData) =>
-      request<Team>(`/teams/${id}/crest`, { method: 'PUT', body: form }),
+      request<Club>(`/clubs/${id}/crest`, { method: 'PUT', body: form }),
+    remove: (id: string) => request<void>(`/clubs/${id}`, { method: 'DELETE' }),
+    addMember: (id: string, data: { email: string; role: AssignableClubRole }) =>
+      request<Club>(`/clubs/${id}/members`, json('POST', data)),
+    removeMember: (memberId: string) =>
+      request<Club>(`/club-members/${memberId}`, { method: 'DELETE' }),
+    addPlayer: (id: string, data: { name: string; number?: number; position?: string }) =>
+      request<Club>(`/clubs/${id}/players`, json('POST', data)),
+    removePlayer: (playerId: string) =>
+      request<Club>(`/club-players/${playerId}`, { method: 'DELETE' }),
   },
   players: {
     create: (teamId: string, data: { name: string; number?: number; position?: string }) =>

@@ -94,7 +94,7 @@ model EmailCode {
   expiresAt       DateTime
   attempts        Int      @default(0)
   sentAt          DateTime @default(now())
-  /// Sends in the current hour, to cap resends
+  /// Sends in the current 24-hour window, to cap resends
   sendsInWindow   Int      @default(1)
   windowStartedAt DateTime @default(now())
 }

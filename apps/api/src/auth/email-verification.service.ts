@@ -10,11 +10,17 @@ import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const CODE_MINUTES = 15;
-const MAX_ATTEMPTS = 5;
+export const CODE_DIGITS = 4;
+const MAX_ATTEMPTS = 3;
 const RESEND_AFTER_SECONDS = 60;
-const MAX_SENDS_PER_HOUR = 5;
+/**
+ * A 4-digit code has 10,000 values, so guesses are capped per day: 3 attempts on each of
+ * at most 8 codes leaves about a 0.24% chance of guessing someone else's in a day.
+ */
+const MAX_SENDS_PER_DAY = 8;
+const WINDOW_MS = 24 * 3_600_000;
 
-/** Six-digit codes sent by email; only their HMAC is stored. */
+/** Short codes sent by email; only their HMAC is stored. */
 @Injectable()
 export class EmailVerificationService {
   constructor(
@@ -50,11 +56,11 @@ export class EmailVerificationService {
         );
       }
       const sameWindow =
-        now.getTime() - previous.windowStartedAt.getTime() < 3_600_000;
+        now.getTime() - previous.windowStartedAt.getTime() < WINDOW_MS;
       if (sameWindow) {
-        if (previous.sendsInWindow >= MAX_SENDS_PER_HOUR) {
+        if (previous.sendsInWindow >= MAX_SENDS_PER_DAY) {
           throw new HttpException(
-            'Pediste demasiados códigos. Inténtalo de nuevo en una hora.',
+            'Pediste demasiados códigos. Inténtalo de nuevo mañana.',
             HttpStatus.TOO_MANY_REQUESTS,
           );
         }
@@ -63,7 +69,9 @@ export class EmailVerificationService {
       }
     }
 
-    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const code = randomInt(0, 10 ** CODE_DIGITS)
+      .toString()
+      .padStart(CODE_DIGITS, '0');
     const data = {
       codeHash: this.hash(userId, code),
       expiresAt: new Date(now.getTime() + CODE_MINUTES * 60_000),

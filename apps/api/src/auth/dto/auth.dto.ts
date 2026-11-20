@@ -51,6 +51,6 @@ export class FacebookLoginDto {
 
 export class VerifyEmailDto {
   @IsString()
-  @Matches(/^\s*\d{6}\s*$/, { message: 'El código tiene 6 dígitos' })
+  @Matches(/^\s*\d{4}\s*$/, { message: 'El código tiene 4 dígitos' })
   code: string;
 }

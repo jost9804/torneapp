@@ -12,10 +12,11 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 const RESEND_SECONDS = 60;
+const CODE_LENGTH = 4;
 
 const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-/** Enter the 6-digit code emailed at sign-up; it can be skipped and finished later. */
+/** Enter the 4-digit code emailed at sign-up; it can be skipped and finished later. */
 export default function VerifyEmailScreen() {
   const auth = useAuth();
   const [code, setCode] = useState('');
@@ -74,10 +75,10 @@ export default function VerifyEmailScreen() {
   };
 
   const onChange = (text: string) => {
-    const digits = text.replace(/\D/g, '').slice(0, 6);
+    const digits = text.replace(/\D/g, '').slice(0, CODE_LENGTH);
     setCode(digits);
     // Pasting or autofilling the whole code sends it right away
-    if (digits.length === 6 && !busy) submit(digits);
+    if (digits.length === CODE_LENGTH && !busy) submit(digits);
   };
 
   return (
@@ -91,7 +92,7 @@ export default function VerifyEmailScreen() {
             <View style={styles.intro}>
               <ThemedText type="subtitle">Confirma tu correo</ThemedText>
               <ThemedText themeColor="textSecondary">
-                Te enviamos un código de 6 dígitos a{' '}
+                Te enviamos un código de 4 dígitos a{' '}
                 <ThemedText type="smallBold">{auth.user.email}</ThemedText>. Revisa también la
                 carpeta de spam.
               </ThemedText>
@@ -103,7 +104,7 @@ export default function VerifyEmailScreen() {
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               autoComplete="one-time-code"
-              maxLength={6}
+              maxLength={CODE_LENGTH}
               autoFocus
               style={styles.code}
             />
@@ -112,7 +113,7 @@ export default function VerifyEmailScreen() {
             <Button
               title="Confirmar"
               loading={busy}
-              disabled={code.length !== 6}
+              disabled={code.length !== CODE_LENGTH}
               onPress={() => submit()}
             />
             <Button
